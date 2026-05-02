@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
+    "start": "serve -s dist -l tcp://0.0.0.0:${PORT:-5173}",
     "test": "vitest run"
   },
   "dependencies": {
@@ -15,7 +16,8 @@
     "motion": "^11.13.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "recharts": "^2.13.3"
+    "recharts": "^2.13.3",
+    "serve": "^14.2.4"
   },
   "devDependencies": {
     "@types/react": "^18.3.12",
