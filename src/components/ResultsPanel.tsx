@@ -123,7 +123,10 @@ export function ResultsPanel({ result, inputs }: ResultsPanelProps) {
           <p className="text-[11px] uppercase tracking-[0.22em] text-muted mb-4">
             Projekce kapitálu do důchodu
           </p>
-          <ProjectionChart data={result.projection} />
+          <ProjectionChart
+            data={result.projection}
+            targetCapital={result.requiredCapital}
+          />
         </div>
       </motion.section>
 

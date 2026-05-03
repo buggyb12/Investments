@@ -1,6 +1,8 @@
 import {
   Area,
   AreaChart,
+  Label,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -11,9 +13,10 @@ import type { ProjectionPoint } from "../lib/pension";
 
 interface ProjectionChartProps {
   data: ProjectionPoint[];
+  targetCapital?: number;
 }
 
-export function ProjectionChart({ data }: ProjectionChartProps) {
+export function ProjectionChart({ data, targetCapital }: ProjectionChartProps) {
   if (data.length < 2) {
     return (
       <div className="h-48 flex items-center justify-center text-sm text-muted">
@@ -22,12 +25,17 @@ export function ProjectionChart({ data }: ProjectionChartProps) {
     );
   }
 
+  const showTarget =
+    typeof targetCapital === "number" &&
+    Number.isFinite(targetCapital) &&
+    targetCapital > 0;
+
   return (
     <div className="h-48 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart
           data={data}
-          margin={{ top: 8, right: 0, bottom: 0, left: 0 }}
+          margin={{ top: 18, right: 12, bottom: 0, left: 0 }}
         >
           <defs>
             <linearGradient id="capitalFill" x1="0" y1="0" x2="0" y2="1">
@@ -46,7 +54,14 @@ export function ProjectionChart({ data }: ProjectionChartProps) {
             }}
             interval="preserveStartEnd"
           />
-          <YAxis hide />
+          <YAxis
+            hide
+            domain={[
+              0,
+              (dataMax: number) =>
+                showTarget ? Math.max(dataMax, targetCapital) * 1.08 : dataMax * 1.05,
+            ]}
+          />
           <Tooltip
             cursor={{ stroke: "rgba(26,24,21,0.25)", strokeWidth: 1 }}
             contentStyle={{
@@ -67,6 +82,27 @@ export function ProjectionChart({ data }: ProjectionChartProps) {
             strokeWidth={1.5}
             fill="url(#capitalFill)"
           />
+          {showTarget && (
+            <ReferenceLine
+              y={targetCapital}
+              stroke="#9C3D2E"
+              strokeWidth={1}
+              strokeDasharray="3 3"
+              ifOverflow="extendDomain"
+            >
+              <Label
+                value={`Cíl ${formatCZK(targetCapital)}`}
+                position="insideTopRight"
+                offset={6}
+                style={{
+                  fill: "#9C3D2E",
+                  fontSize: 10,
+                  fontFamily: "JetBrains Mono, monospace",
+                  letterSpacing: "0.02em",
+                }}
+              />
+            </ReferenceLine>
+          )}
         </AreaChart>
       </ResponsiveContainer>
     </div>
