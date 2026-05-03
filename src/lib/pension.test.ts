@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   PENSION_PARAMS_2025,
+  computeScenario,
   estimateStatePension,
   monthlyContribution,
   monthlyGap,
@@ -123,5 +124,42 @@ describe("monthlyContribution", () => {
     const lowYield = monthlyContribution(target, 30, 0.02, 0);
     const highYield = monthlyContribution(target, 30, 0.07, 0);
     expect(highYield).toBeLessThan(lowYield);
+  });
+});
+
+describe("computeScenario coverage flags", () => {
+  const baseInput = {
+    birthDate: new Date(new Date().getFullYear() - 40, 5, 15),
+    gender: "male" as const,
+    incomeType: "employee" as const,
+    grossMonthly: 138_000,
+    yearsInsured: 18,
+    plannedRetirementAge: 65,
+    replacementRate: 0.7,
+    withdrawalYears: 20,
+    accumulationYield: 0.05,
+    withdrawalYield: 0.03,
+    currentSavings: 0,
+  };
+
+  it("does NOT flag covered when there are no savings", () => {
+    const r = computeScenario(baseInput);
+    expect(r.coveredByExistingSavings).toBe(false);
+    expect(r.monthlyContribution).toBeGreaterThan(0);
+    expect(r.existingSavingsFutureValue).toBe(0);
+  });
+
+  it("flags covered when projected savings exceed required capital", () => {
+    const r = computeScenario({ ...baseInput, currentSavings: 5_000_000 });
+    expect(r.coveredByExistingSavings).toBe(true);
+    expect(r.monthlyContribution).toBe(0);
+    expect(r.existingSavingsFutureValue).toBeGreaterThan(r.requiredCapital);
+  });
+
+  it("does NOT flag covered when savings help but don't fully cover", () => {
+    const r = computeScenario({ ...baseInput, currentSavings: 500_000 });
+    expect(r.coveredByExistingSavings).toBe(false);
+    expect(r.monthlyContribution).toBeGreaterThan(0);
+    expect(r.existingSavingsFutureValue).toBeLessThan(r.requiredCapital);
   });
 });

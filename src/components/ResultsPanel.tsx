@@ -86,7 +86,11 @@ export function ResultsPanel({ result, inputs }: ResultsPanelProps) {
           value={formatCZK(result.monthlyGap)}
           unit="/ měs"
           tone="accent"
-          description="Měsíční částka, kterou si klient musí pokrýt z vlastních zdrojů."
+          description={
+            result.monthlyGap === 0
+              ? "Státní důchod sám pokryje cílový příjem — žádný gap."
+              : "Měsíční částka, kterou si klient musí pokrýt z vlastních zdrojů."
+          }
         />
         <MetricCard
           index={3}
@@ -95,7 +99,7 @@ export function ResultsPanel({ result, inputs }: ResultsPanelProps) {
           value={formatCZK(result.monthlyContribution)}
           unit="/ měs"
           tone="secondary"
-          description={`Měsíční úložka při výnosu ${Math.round(inputs.accumulationYield * 100)} % p.a. pro vytvoření kapitálu ${formatCZK(result.requiredCapital)}.`}
+          description={solutionDescription({ result, inputs })}
         />
       </div>
 
@@ -163,4 +167,28 @@ export function ResultsPanel({ result, inputs }: ResultsPanelProps) {
       </motion.div>
     </div>
   );
+}
+
+function solutionDescription({
+  result,
+  inputs,
+}: {
+  result: ScenarioResult;
+  inputs: ClientInputs;
+}): string {
+  const yieldPct = Math.round(inputs.accumulationYield * 100);
+
+  if (result.requiredCapital <= 0) {
+    return "Při zvolených parametrech není potřeba tvořit dodatečný kapitál.";
+  }
+
+  if (result.coveredByExistingSavings) {
+    return `Vaše stávající úspory ${formatCZK(inputs.currentSavings)} při výnosu ${yieldPct} % p.a. narostou na ${formatCZK(result.existingSavingsFutureValue)} — to už pokryje potřebný kapitál ${formatCZK(result.requiredCapital)}, další odkládání není nutné.`;
+  }
+
+  if (inputs.currentSavings > 0) {
+    return `Měsíční úložka při výnosu ${yieldPct} % p.a. Stávající úspory ${formatCZK(inputs.currentSavings)} narostou na ${formatCZK(result.existingSavingsFutureValue)}, doplňujete do potřebného kapitálu ${formatCZK(result.requiredCapital)}.`;
+  }
+
+  return `Měsíční úložka při výnosu ${yieldPct} % p.a. pro vytvoření kapitálu ${formatCZK(result.requiredCapital)}.`;
 }

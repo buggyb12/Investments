@@ -102,6 +102,7 @@ export function InputForm({ inputs, onChange }: InputFormProps) {
             step={1000}
             className="input-base num text-lg"
             value={inputs.grossMonthly || ""}
+            onWheel={(e) => e.currentTarget.blur()}
             onChange={(e) => onChange({ grossMonthly: Number(e.target.value) || 0 })}
           />
         </Field>
@@ -119,6 +120,7 @@ export function InputForm({ inputs, onChange }: InputFormProps) {
               max={50}
               className="input-base num"
               value={inputs.yearsInsured}
+              onWheel={(e) => e.currentTarget.blur()}
               onChange={(e) =>
                 onChange({ yearsInsured: Math.max(0, Number(e.target.value) || 0) })
               }
@@ -137,6 +139,7 @@ export function InputForm({ inputs, onChange }: InputFormProps) {
               max={75}
               className="input-base num"
               value={inputs.plannedRetirementAge}
+              onWheel={(e) => e.currentTarget.blur()}
               onChange={(e) =>
                 onChange({ plannedRetirementAge: Number(e.target.value) || 65 })
               }
@@ -206,6 +209,7 @@ export function InputForm({ inputs, onChange }: InputFormProps) {
             className="input-base num"
             value={inputs.currentSavings || ""}
             placeholder="0"
+            onWheel={(e) => e.currentTarget.blur()}
             onChange={(e) =>
               onChange({ currentSavings: Math.max(0, Number(e.target.value) || 0) })
             }

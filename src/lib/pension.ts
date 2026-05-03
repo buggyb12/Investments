@@ -205,6 +205,10 @@ export interface ScenarioResult {
   monthlyGap: number;
   requiredCapital: number;
   monthlyContribution: number;
+  /** Future value of currentSavings at retirement (compounded at accumulationYield). */
+  existingSavingsFutureValue: number;
+  /** True when existingSavingsFutureValue >= requiredCapital and capital > 0. */
+  coveredByExistingSavings: boolean;
   projection: ProjectionPoint[];
 }
 
@@ -237,6 +241,11 @@ export function computeScenario(input: ScenarioInput): ScenarioResult {
     input.currentSavings,
   );
 
+  const r = input.accumulationYield / 12;
+  const n = yearsToRetirement * 12;
+  const existingSavingsFutureValue =
+    r === 0 ? input.currentSavings : input.currentSavings * Math.pow(1 + r, n);
+
   const projection = projectCapital(
     input.currentSavings,
     contribution,
@@ -251,6 +260,8 @@ export function computeScenario(input: ScenarioInput): ScenarioResult {
     monthlyGap: gap,
     requiredCapital: capital,
     monthlyContribution: contribution,
+    existingSavingsFutureValue,
+    coveredByExistingSavings: capital > 0 && existingSavingsFutureValue >= capital,
     projection,
   };
 }
