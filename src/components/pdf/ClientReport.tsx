@@ -8,6 +8,13 @@ import {
 } from "@react-pdf/renderer";
 import { formatCZK, formatPercent, formatYears } from "../../lib/format";
 import type { ScenarioResult } from "../../lib/pension";
+import {
+  FUNDS,
+  FUND_ORDER,
+  splitMonthlyContribution,
+  type Allocation,
+  type PortfolioMetrics,
+} from "../../lib/portfolio";
 import type { ClientInputs } from "../../state/useClientInputs";
 
 // Register fonts that include Czech diacritics
@@ -156,6 +163,43 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: "#1A1815",
   },
+  // Page 2 — allocation
+  allocBar: {
+    flexDirection: "row",
+    height: 8,
+    marginTop: 6,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "rgba(26,24,21,0.18)",
+  },
+  fundRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(26,24,21,0.10)",
+    gap: 10,
+  },
+  fundSwatch: { width: 10, height: 10, marginRight: 4 },
+  fundColTicker: { width: 50, fontSize: 9, fontWeight: 600 },
+  fundColName: { flex: 1, fontSize: 9 },
+  fundColMini: { width: 42, fontSize: 9, textAlign: "right" },
+  fundColAlloc: {
+    width: 60,
+    fontFamily: "Fraunces",
+    fontSize: 13,
+    fontWeight: 600,
+    textAlign: "right",
+  },
+  metricsRow: {
+    flexDirection: "row",
+    gap: 18,
+    marginTop: 18,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(26,24,21,0.18)",
+  },
+  metricCell: { flex: 1 },
   footer: {
     position: "absolute",
     bottom: 32,
@@ -175,6 +219,8 @@ const styles = StyleSheet.create({
 interface ClientReportProps {
   result: ScenarioResult;
   inputs: ClientInputs;
+  allocation: Allocation;
+  portfolioMetrics: PortfolioMetrics;
 }
 
 const incomeTypeLabels: Record<string, string> = {
@@ -183,7 +229,19 @@ const incomeTypeLabels: Record<string, string> = {
   businessOwner: "Podnikatel",
 };
 
-export function ClientReport({ result, inputs }: ClientReportProps) {
+const FUND_COLORS: Record<string, string> = {
+  aggh: "#3C5A3E",
+  vwce: "#1A1815",
+  cspx: "#9C3D2E",
+  sgln: "#B68A35",
+};
+
+export function ClientReport({
+  result,
+  inputs,
+  allocation,
+  portfolioMetrics,
+}: ClientReportProps) {
   const today = new Date().toLocaleDateString("cs-CZ", {
     year: "numeric",
     month: "long",
@@ -191,6 +249,7 @@ export function ClientReport({ result, inputs }: ClientReportProps) {
   });
 
   const replacementPct = Math.round(inputs.replacementRate * 100);
+  const split = splitMonthlyContribution(result.monthlyContribution, allocation);
 
   return (
     <Document
@@ -320,6 +379,173 @@ export function ClientReport({ result, inputs }: ClientReportProps) {
           <Text>
             Orientační odhad, není závazný výpočet ČSSZ.
           </Text>
+          <Text>{today}</Text>
+        </View>
+      </Page>
+
+      {/* Page 2 — Investiční portfolio */}
+      <Page size="A4" style={styles.page}>
+        <View style={styles.header}>
+          <Text style={styles.brand}>Investiční portfolio</Text>
+          <Text style={styles.meta}>{today}</Text>
+        </View>
+
+        <Text style={styles.clientLine}>Krok 02 — Jak investovat</Text>
+        <Text style={styles.subline}>
+          Měsíční úložka {formatCZK(result.monthlyContribution)} rozdělená do 4
+          fondů. Vážený očekávaný výnos {formatPercent(portfolioMetrics.expectedReturn)},
+          vážený TER {formatPercent(portfolioMetrics.weightedTER)}.
+        </Text>
+
+        {/* Stacked allocation bar */}
+        <View style={styles.allocBar}>
+          {FUND_ORDER.map((id) => {
+            const w = (allocation[id] ?? 0) * 100;
+            if (w <= 0) return null;
+            return (
+              <View
+                key={id}
+                style={{
+                  width: `${w}%`,
+                  backgroundColor: FUND_COLORS[id],
+                }}
+              />
+            );
+          })}
+        </View>
+
+        {/* Fund table */}
+        <View style={{ marginTop: 8 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              paddingBottom: 6,
+              borderBottomWidth: 1,
+              borderBottomColor: "rgba(26,24,21,0.18)",
+              gap: 10,
+            }}
+          >
+            <View style={{ width: 14 }} />
+            <Text style={[styles.fundColTicker, { color: "#8B857A", fontSize: 7, letterSpacing: 1 }]}>
+              TICKER
+            </Text>
+            <Text style={[styles.fundColName, { color: "#8B857A", fontSize: 7, letterSpacing: 1 }]}>
+              FOND / ROLE
+            </Text>
+            <Text style={[styles.fundColMini, { color: "#8B857A", fontSize: 7, letterSpacing: 1 }]}>
+              TER
+            </Text>
+            <Text style={[styles.fundColMini, { color: "#8B857A", fontSize: 7, letterSpacing: 1 }]}>
+              SRI
+            </Text>
+            <Text style={[styles.fundColMini, { color: "#8B857A", fontSize: 7, letterSpacing: 1 }]}>
+              VÝNOS
+            </Text>
+            <Text style={[styles.fundColAlloc, { color: "#8B857A", fontSize: 7, letterSpacing: 1, fontFamily: "InterTight", fontWeight: 400 }]}>
+              PODÍL
+            </Text>
+          </View>
+
+          {FUND_ORDER.map((id) => {
+            const f = FUNDS[id];
+            const w = (allocation[id] ?? 0) * 100;
+            return (
+              <View key={id} style={styles.fundRow}>
+                <View
+                  style={[styles.fundSwatch, { backgroundColor: FUND_COLORS[id] }]}
+                />
+                <Text style={styles.fundColTicker}>{f.ticker}</Text>
+                <View style={styles.fundColName}>
+                  <Text>{f.shortName}</Text>
+                  <Text style={{ fontSize: 7, color: "#8B857A", marginTop: 1 }}>
+                    {f.role} · ISIN {f.isin}
+                  </Text>
+                </View>
+                <Text style={styles.fundColMini}>{formatPercent(f.ter)}</Text>
+                <Text style={styles.fundColMini}>{f.sri}/7</Text>
+                <Text style={styles.fundColMini}>
+                  {formatPercent(f.expectedAnnualReturn)}
+                </Text>
+                <Text style={styles.fundColAlloc}>{Math.round(w)} %</Text>
+              </View>
+            );
+          })}
+        </View>
+
+        {/* Monthly split */}
+        <Text style={[styles.sectionTitle, { marginTop: 22 }]}>
+          Měsíční úložka po fondech
+        </Text>
+        <View style={{ marginTop: 8 }}>
+          {FUND_ORDER.map((id) => {
+            if ((allocation[id] ?? 0) <= 0) return null;
+            const f = FUNDS[id];
+            return (
+              <View
+                key={id}
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  paddingVertical: 4,
+                  borderBottomWidth: 1,
+                  borderBottomColor: "rgba(26,24,21,0.08)",
+                }}
+              >
+                <Text style={{ fontSize: 9 }}>{f.shortName}</Text>
+                <Text style={{ fontSize: 9 }}>{formatCZK(split[id])} / měs</Text>
+              </View>
+            );
+          })}
+        </View>
+
+        {/* Summary metrics */}
+        <View style={styles.metricsRow}>
+          <View style={styles.metricCell}>
+            <Text style={styles.inputLabel}>Vážený výnos</Text>
+            <Text style={[styles.bigNumber, { fontSize: 18, marginBottom: 2 }]}>
+              {formatPercent(portfolioMetrics.expectedReturn)}
+            </Text>
+          </View>
+          <View style={styles.metricCell}>
+            <Text style={styles.inputLabel}>Vážený TER</Text>
+            <Text style={[styles.bigNumber, { fontSize: 18, marginBottom: 2 }]}>
+              {formatPercent(portfolioMetrics.weightedTER)}
+            </Text>
+          </View>
+          <View style={styles.metricCell}>
+            <Text style={styles.inputLabel}>Vážené SRI</Text>
+            <Text style={[styles.bigNumber, { fontSize: 18, marginBottom: 2 }]}>
+              {portfolioMetrics.weightedSRI.toFixed(1)} / 7
+            </Text>
+          </View>
+          <View style={styles.metricCell}>
+            <Text style={styles.inputLabel}>Roční TER náklady</Text>
+            <Text style={[styles.bigNumber, { fontSize: 18, marginBottom: 2 }]}>
+              {formatCZK(
+                result.monthlyContribution * 12 * portfolioMetrics.weightedTER,
+              )}
+            </Text>
+          </View>
+        </View>
+
+        <Text
+          style={{
+            fontSize: 8,
+            color: "#8B857A",
+            marginTop: 18,
+            lineHeight: 1.5,
+          }}
+        >
+          Vstupní poplatek 0 % platí pro samotný ETF. Skutečné náklady na nákup
+          závisí na vybraném brokerovi (XTB, Fio, Patria, Interactive Brokers,
+          Trading 212…) — typicky komise 0,1–0,5 % za obchod nebo paušál.
+          Historické výnosy nejsou zárukou budoucích. Existuje měnové riziko
+          (CZK vs. USD/EUR). Pro osvobození od daně platí 3letý časový test.
+          Toto není investiční poradenství dle § 4 ZPKT.
+        </Text>
+
+        <View style={styles.footer} fixed>
+          <Text>Investiční portfolio — orientační doporučení.</Text>
           <Text>{today}</Text>
         </View>
       </Page>

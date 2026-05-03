@@ -3,6 +3,7 @@ import { Download, AlertCircle } from "lucide-react";
 import { motion } from "motion/react";
 import type { ScenarioResult } from "../lib/pension";
 import type { ClientInputs } from "../state/useClientInputs";
+import type { usePortfolio } from "../state/usePortfolio";
 import { formatCZK, formatYears } from "../lib/format";
 import { MetricCard } from "./MetricCard";
 import { GapChart } from "./GapChart";
@@ -12,9 +13,10 @@ import { ClientReport } from "./pdf/ClientReport";
 interface ResultsPanelProps {
   result: ScenarioResult;
   inputs: ClientInputs;
+  portfolio: ReturnType<typeof usePortfolio>;
 }
 
-export function ResultsPanel({ result, inputs }: ResultsPanelProps) {
+export function ResultsPanel({ result, inputs, portfolio }: ResultsPanelProps) {
   const noWorkYears = inputs.yearsInsured <= 0;
   const tooLate = result.yearsToRetirement <= 0;
 
@@ -143,7 +145,16 @@ export function ResultsPanel({ result, inputs }: ResultsPanelProps) {
           odchodu.
         </p>
 
-        <BlobProvider document={<ClientReport result={result} inputs={inputs} />}>
+        <BlobProvider
+          document={
+            <ClientReport
+              result={result}
+              inputs={inputs}
+              allocation={portfolio.allocation}
+              portfolioMetrics={portfolio.metrics}
+            />
+          }
+        >
           {({ url, loading, error }) => {
             if (error) {
               return (

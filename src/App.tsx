@@ -1,10 +1,13 @@
 import { motion } from "motion/react";
 import { useClientInputs } from "./state/useClientInputs";
+import { usePortfolio } from "./state/usePortfolio";
 import { InputForm } from "./components/InputForm";
 import { ResultsPanel } from "./components/ResultsPanel";
+import { PortfolioStep } from "./components/PortfolioStep";
 
 export function App() {
   const { inputs, result, set } = useClientInputs();
+  const portfolio = usePortfolio(result.yearsToRetirement);
 
   return (
     <div className="relative z-10 min-h-screen">
@@ -65,8 +68,17 @@ export function App() {
             <InputForm inputs={inputs} onChange={set} />
           </section>
           <section className="col-span-12 lg:col-span-7">
-            <ResultsPanel result={result} inputs={inputs} />
+            <ResultsPanel result={result} inputs={inputs} portfolio={portfolio} />
           </section>
+        </div>
+
+        {/* Krok 2 — investiční portfolio */}
+        <div className="mt-24 pt-12 border-t border-line">
+          <PortfolioStep
+            monthlyContribution={result.monthlyContribution}
+            requiredYield={inputs.accumulationYield}
+            portfolio={portfolio}
+          />
         </div>
       </main>
 
