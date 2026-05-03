@@ -5,10 +5,6 @@ const czk0 = new Intl.NumberFormat("cs-CZ", {
 });
 
 const num0 = new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 0 });
-const pct0 = new Intl.NumberFormat("cs-CZ", {
-  style: "percent",
-  maximumFractionDigits: 0,
-});
 
 export function formatCZK(value: number): string {
   if (!Number.isFinite(value)) return "—";
@@ -20,9 +16,13 @@ export function formatNumber(value: number): string {
   return num0.format(Math.round(value));
 }
 
-export function formatPercent(value: number): string {
+export function formatPercent(value: number, decimals: number = 0): string {
   if (!Number.isFinite(value)) return "—";
-  return pct0.format(value);
+  return new Intl.NumberFormat("cs-CZ", {
+    style: "percent",
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  }).format(value);
 }
 
 export function formatYears(value: number): string {

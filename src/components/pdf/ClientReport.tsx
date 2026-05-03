@@ -1,6 +1,7 @@
 import {
   Document,
   Font,
+  Link,
   Page,
   StyleSheet,
   Text,
@@ -393,8 +394,8 @@ export function ClientReport({
         <Text style={styles.clientLine}>Krok 02 — Jak investovat</Text>
         <Text style={styles.subline}>
           Měsíční úložka {formatCZK(result.monthlyContribution)} rozdělená do 4
-          fondů. Vážený očekávaný výnos {formatPercent(portfolioMetrics.expectedReturn)},
-          vážený TER {formatPercent(portfolioMetrics.weightedTER)}.
+          fondů. Vážený očekávaný výnos {formatPercent(portfolioMetrics.expectedReturn, 1)},
+          vážený TER {formatPercent(portfolioMetrics.weightedTER, 2)}.
         </Text>
 
         {/* Stacked allocation bar */}
@@ -454,17 +455,21 @@ export function ClientReport({
                 <View
                   style={[styles.fundSwatch, { backgroundColor: FUND_COLORS[id] }]}
                 />
-                <Text style={styles.fundColTicker}>{f.ticker}</Text>
+                <Link src={f.url} style={[styles.fundColTicker, { color: "#1A1815" }]}>
+                  {f.ticker}
+                </Link>
                 <View style={styles.fundColName}>
-                  <Text>{f.shortName}</Text>
+                  <Link src={f.url} style={{ color: "#1A1815", textDecoration: "none" }}>
+                    {f.shortName}
+                  </Link>
                   <Text style={{ fontSize: 7, color: "#8B857A", marginTop: 1 }}>
                     {f.role} · ISIN {f.isin}
                   </Text>
                 </View>
-                <Text style={styles.fundColMini}>{formatPercent(f.ter)}</Text>
+                <Text style={styles.fundColMini}>{formatPercent(f.ter, 2)}</Text>
                 <Text style={styles.fundColMini}>{f.sri}/7</Text>
                 <Text style={styles.fundColMini}>
-                  {formatPercent(f.expectedAnnualReturn)}
+                  {formatPercent(f.expectedAnnualReturn, 1)}
                 </Text>
                 <Text style={styles.fundColAlloc}>{Math.round(w)} %</Text>
               </View>
@@ -503,13 +508,13 @@ export function ClientReport({
           <View style={styles.metricCell}>
             <Text style={styles.inputLabel}>Vážený výnos</Text>
             <Text style={[styles.bigNumber, { fontSize: 18, marginBottom: 2 }]}>
-              {formatPercent(portfolioMetrics.expectedReturn)}
+              {formatPercent(portfolioMetrics.expectedReturn, 1)}
             </Text>
           </View>
           <View style={styles.metricCell}>
             <Text style={styles.inputLabel}>Vážený TER</Text>
             <Text style={[styles.bigNumber, { fontSize: 18, marginBottom: 2 }]}>
-              {formatPercent(portfolioMetrics.weightedTER)}
+              {formatPercent(portfolioMetrics.weightedTER, 2)}
             </Text>
           </View>
           <View style={styles.metricCell}>
@@ -536,8 +541,13 @@ export function ClientReport({
             lineHeight: 1.5,
           }}
         >
-          Vstupní poplatek 0 % platí pro samotný ETF. Skutečné náklady na nákup
-          závisí na vybraném brokerovi (XTB, Fio, Patria, Interactive Brokers,
+          Zdroj dat (TER, SRI, KID, historický výnos):{" "}
+          <Link src="https://www.justetf.com" style={{ color: "#8B857A" }}>
+            justETF.com
+          </Link>
+          . Tickery a ISIN jsou klikatelné — odkazují na profil fondu. Vstupní
+          poplatek 0 % platí pro samotný ETF. Skutečné náklady na nákup závisí
+          na vybraném brokerovi (XTB, Fio, Patria, Interactive Brokers,
           Trading 212…) — typicky komise 0,1–0,5 % za obchod nebo paušál.
           Historické výnosy nejsou zárukou budoucích. Existuje měnové riziko
           (CZK vs. USD/EUR). Pro osvobození od daně platí 3letý časový test.

@@ -1,3 +1,4 @@
+import { ExternalLink } from "lucide-react";
 import { ALLOCATION_FILL } from "./AllocationBar";
 import { formatCZK, formatPercent } from "../lib/format";
 import type { ETF, FundId } from "../lib/portfolio";
@@ -25,25 +26,42 @@ export function FundCard({ fund, weight, monthlyAmount, onChange }: FundCardProp
             />
             {fund.role}
           </span>
-          <span className="num text-[10px] text-muted">{fund.ticker}</span>
+          <a
+            href={fund.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="num text-[10px] text-muted hover:text-ink inline-flex items-center gap-1 transition-colors"
+            title={`Otevřít ${fund.ticker} na justETF (zdroj KID/SRI/TER)`}
+          >
+            {fund.ticker}
+            <ExternalLink size={10} />
+          </a>
         </div>
         <h3 className="display text-lg leading-tight text-ink">
-          {fund.shortName}
+          <a
+            href={fund.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:underline decoration-dotted underline-offset-4"
+          >
+            {fund.shortName}
+          </a>
         </h3>
+        <p className="text-[10px] text-muted num">ISIN {fund.isin}</p>
         <p className="text-xs text-muted leading-relaxed">{fund.description}</p>
       </header>
 
       <dl className="grid grid-cols-3 gap-x-3 gap-y-2 text-xs border-t border-line pt-3">
-        <Stat label="TER" value={formatPercent(fund.ter)} hint="ročně, zahrnuje správu" />
+        <Stat label="TER" value={formatPercent(fund.ter, 2)} hint="ročně, zahrnuje správu" />
         <Stat label="SRI" value={`${fund.sri} / 7`} hint="riziko (KID)" />
         <Stat
           label="Výnos 10 let"
-          value={formatPercent(fund.expectedAnnualReturn)}
+          value={formatPercent(fund.expectedAnnualReturn, 1)}
           hint="hist., orientačně"
         />
-        <Stat label="Vstupní" value={formatPercent(fund.entryFee)} hint="0 % ETF*" />
+        <Stat label="Vstupní" value={formatPercent(fund.entryFee, 2)} hint="0 % ETF*" />
         <Stat label="Správa" value="v TER" hint="zahrnuto v TER" />
-        <Stat label="Výstupní" value={formatPercent(fund.exitFee)} hint="0 %" />
+        <Stat label="Výstupní" value={formatPercent(fund.exitFee, 2)} hint="0 %" />
       </dl>
 
       <div className="space-y-2 pt-1">

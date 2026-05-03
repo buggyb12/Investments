@@ -28,6 +28,8 @@ export interface ETF {
   /** Výstupní poplatek */
   exitFee: number;
   description: string;
+  /** Odkaz na justETF profil — zdroj pro KID/SRI/TER/výnos */
+  url: string;
 }
 
 export const FUNDS: Record<FundId, ETF> = {
@@ -46,6 +48,7 @@ export const FUNDS: Record<FundId, ETF> = {
     exitFee: 0,
     description:
       "Globální dluhopisové portfolio s měnovým hedge do EUR. Tlumí výkyvy akciové části.",
+    url: "https://www.justetf.com/en/etf-profile.html?isin=IE00BDBRDM35",
   },
   vwce: {
     id: "vwce",
@@ -62,6 +65,7 @@ export const FUNDS: Record<FundId, ETF> = {
     exitFee: 0,
     description:
       "~3700 firem z developed i emerging trhů. Jeden fond pokryje globální akcie.",
+    url: "https://www.justetf.com/en/etf-profile.html?isin=IE00BK5BQT80",
   },
   cspx: {
     id: "cspx",
@@ -78,6 +82,7 @@ export const FUNDS: Record<FundId, ETF> = {
     exitFee: 0,
     description:
       "500 největších firem v USA. Historicky nejvýkonnější segment posledních 15 let.",
+    url: "https://www.justetf.com/en/etf-profile.html?isin=IE00B5BMR087",
   },
   sgln: {
     id: "sgln",
@@ -94,6 +99,7 @@ export const FUNDS: Record<FundId, ETF> = {
     exitFee: 0,
     description:
       "Fyzické zlato uložené v trezoru. Ochrana proti inflaci a měnovému riziku.",
+    url: "https://www.justetf.com/en/etf-profile.html?isin=IE00B4ND3602",
   },
 };
 

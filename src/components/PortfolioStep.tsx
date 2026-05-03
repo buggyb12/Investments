@@ -115,17 +115,17 @@ export function PortfolioStep({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-6 pt-6 border-t border-line">
         <Metric
           label="Vážený výnos"
-          value={formatPercent(portfolio.metrics.expectedReturn)}
+          value={formatPercent(portfolio.metrics.expectedReturn, 1)}
           tone={yieldGap >= -0.001 ? "positive" : "negative"}
           hint={
             yieldGap >= -0.001
-              ? `Splňuje cíl ${formatPercent(requiredYield)}`
-              : `Nedosahuje cíle ${formatPercent(requiredYield)}`
+              ? `Splňuje cíl ${formatPercent(requiredYield, 1)}`
+              : `Nedosahuje cíle ${formatPercent(requiredYield, 1)}`
           }
         />
         <Metric
           label="Vážený TER"
-          value={formatPercent(portfolio.metrics.weightedTER)}
+          value={formatPercent(portfolio.metrics.weightedTER, 2)}
           hint={`${formatCZK(yearlyTERCost)} / rok poplatků`}
         />
         <Metric
@@ -142,6 +142,18 @@ export function PortfolioStep({
 
       {/* Disclaimer */}
       <div className="text-xs text-muted leading-relaxed pt-6 border-t border-line space-y-1">
+        <p>
+          Zdroj dat (TER, SRI, KID, historický výnos):{" "}
+          <a
+            href="https://www.justetf.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline decoration-dotted underline-offset-4 hover:text-ink"
+          >
+            justETF.com
+          </a>{" "}
+          — klikni na ticker fondu nahoře a otevře se jeho profil v novém okně.
+        </p>
         <p>
           * Vstupní poplatek 0 % platí pro samotný ETF. Skutečné náklady na nákup
           závisí na vybraném brokerovi (XTB, Fio, Patria, Interactive Brokers, Trading 212…)
