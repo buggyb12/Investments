@@ -41,27 +41,30 @@ const BODY_FONT = "Roboto";
 
 const styles = StyleSheet.create({
   page: {
-    padding: 56,
+    paddingTop: 40,
+    paddingBottom: 56,
+    paddingHorizontal: 40,
     backgroundColor: "#F4F1EA",
     color: "#1A1815",
     fontFamily: BODY_FONT,
-    fontSize: 10,
-    lineHeight: 1.55,
+    fontSize: 9.5,
+    lineHeight: 1.45,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
-    paddingBottom: 14,
+    paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: "rgba(26,24,21,0.18)",
-    marginBottom: 28,
+    marginBottom: 18,
   },
   brand: {
     fontFamily: DISPLAY_FONT,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 700,
     letterSpacing: -0.4,
+    lineHeight: 1.1,
   },
   meta: {
     fontSize: 8,
@@ -72,44 +75,64 @@ const styles = StyleSheet.create({
   },
   clientLine: {
     fontFamily: DISPLAY_FONT,
-    fontSize: 28,
-    marginBottom: 6,
-    letterSpacing: -0.6,
+    fontSize: 22,
+    fontWeight: 700,
+    lineHeight: 1.15,
+    marginBottom: 4,
+    letterSpacing: -0.5,
   },
   subline: {
-    fontSize: 10,
+    fontSize: 9,
     color: "#8B857A",
-    marginBottom: 30,
+    lineHeight: 1.4,
+    marginBottom: 18,
   },
-  section: {
-    marginBottom: 22,
-    paddingTop: 14,
+  metricsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginHorizontal: -8,
+  },
+  metricCell: {
+    width: "50%",
+    paddingHorizontal: 8,
+    paddingVertical: 12,
     borderTopWidth: 1,
     borderTopColor: "rgba(26,24,21,0.18)",
   },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 12,
+    marginBottom: 8,
   },
   step: {
-    fontSize: 8,
+    fontSize: 7.5,
     color: "#8B857A",
     letterSpacing: 1.5,
     textTransform: "uppercase",
   },
   sectionTitle: {
     fontFamily: DISPLAY_FONT,
-    fontSize: 14,
+    fontSize: 11,
     fontWeight: 700,
-    letterSpacing: -0.2,
+    letterSpacing: -0.1,
+    textTransform: "uppercase",
+  },
+  bigNumberRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    marginBottom: 6,
   },
   bigNumber: {
     fontFamily: DISPLAY_FONT,
-    fontSize: 32,
+    fontSize: 22,
     fontWeight: 700,
-    letterSpacing: -0.8,
-    marginBottom: 6,
+    letterSpacing: -0.6,
+    lineHeight: 1.15,
+  },
+  bigNumberUnit: {
+    fontSize: 8.5,
+    color: "#8B857A",
+    marginLeft: 4,
   },
   bigNumberAccent: {
     color: "#9C3D2E",
@@ -118,9 +141,9 @@ const styles = StyleSheet.create({
     color: "#3C5A3E",
   },
   body: {
-    fontSize: 10,
+    fontSize: 9,
     color: "#1A1815",
-    maxWidth: 460,
+    lineHeight: 1.45,
   },
   bodyMuted: {
     fontSize: 9,
@@ -133,17 +156,17 @@ const styles = StyleSheet.create({
   },
   col: { flex: 1 },
   inputsBox: {
-    marginTop: 8,
-    paddingTop: 12,
+    marginTop: 14,
+    paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: "rgba(26,24,21,0.18)",
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 18,
   },
   inputCell: {
-    width: "30%",
-    marginBottom: 10,
+    width: "33.33%",
+    marginBottom: 8,
+    paddingRight: 12,
   },
   inputLabel: {
     fontSize: 7,
@@ -192,7 +215,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "rgba(26,24,21,0.18)",
   },
-  metricCell: { flex: 1 },
+  portfolioMetricCell: { flex: 1 },
   footer: {
     position: "absolute",
     bottom: 32,
@@ -221,6 +244,36 @@ const incomeTypeLabels: Record<string, string> = {
   selfEmployed: "OSVČ",
   businessOwner: "Podnikatel",
 };
+
+interface MetricCellProps {
+  step: string;
+  title: string;
+  value: string;
+  description: string;
+  tone?: "default" | "accent" | "secondary";
+}
+
+function MetricCell({ step, title, value, description, tone = "default" }: MetricCellProps) {
+  const valueStyle =
+    tone === "accent"
+      ? [styles.bigNumber, styles.bigNumberAccent]
+      : tone === "secondary"
+        ? [styles.bigNumber, styles.bigNumberSecondary]
+        : [styles.bigNumber];
+  return (
+    <View style={styles.metricCell}>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.step}>{step}</Text>
+        <Text style={styles.sectionTitle}>{title}</Text>
+      </View>
+      <View style={styles.bigNumberRow}>
+        <Text style={valueStyle}>{value}</Text>
+        <Text style={styles.bigNumberUnit}>/ měsíc</Text>
+      </View>
+      <Text style={styles.body}>{description}</Text>
+    </View>
+  );
+}
 
 const FUND_COLORS: Record<string, string> = {
   aggh: "#3C5A3E",
@@ -263,73 +316,34 @@ export function ClientReport({
           Do důchodu zbývá {formatYears(result.yearsToRetirement)} • orientační odhad
         </Text>
 
-        {/* 1. Realita */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.step}>01</Text>
-            <Text style={styles.sectionTitle}>Realita</Text>
-          </View>
-          <Text style={styles.bigNumber}>
-            {formatCZK(result.statePension.monthly)} <Text style={styles.bodyMuted}>/ měsíc</Text>
-          </Text>
-          <Text style={styles.body}>
-            Na základě vašich aktuálních příjmů vychází státní starobní důchod
-            přibližně na {formatCZK(result.statePension.monthly)} měsíčně.
-            Z toho základní výměra {formatCZK(result.statePension.basicComponent)} a
-            procentní výměra {formatCZK(result.statePension.percentageComponent)}.
-          </Text>
-        </View>
-
-        {/* 2. Očekávání */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.step}>02</Text>
-            <Text style={styles.sectionTitle}>Očekávání</Text>
-          </View>
-          <Text style={styles.bigNumber}>
-            {formatCZK(result.targetIncome)} <Text style={styles.bodyMuted}>/ měsíc</Text>
-          </Text>
-          <Text style={styles.body}>
-            Pro zachování životní úrovně by bylo ideální mít přibližně{" "}
-            {formatCZK(result.targetIncome)} měsíčně, tedy {replacementPct} %
-            současného příjmu.
-          </Text>
-        </View>
-
-        {/* 3. Rozdíl */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.step}>03</Text>
-            <Text style={styles.sectionTitle}>Rozdíl</Text>
-          </View>
-          <Text style={[styles.bigNumber, styles.bigNumberAccent]}>
-            {formatCZK(result.monthlyGap)} <Text style={styles.bodyMuted}>/ měsíc</Text>
-          </Text>
-          <Text style={styles.body}>
-            Vzniká rozdíl přibližně {formatCZK(result.monthlyGap)} měsíčně, který
-            je třeba pokrýt z vlastních zdrojů — vlastní investice, renta nebo
-            jiný kapitál.
-          </Text>
-        </View>
-
-        {/* 4. Řešení */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.step}>04</Text>
-            <Text style={styles.sectionTitle}>Řešení</Text>
-          </View>
-          <Text style={[styles.bigNumber, styles.bigNumberSecondary]}>
-            {formatCZK(result.monthlyContribution)} <Text style={styles.bodyMuted}>/ měsíc</Text>
-          </Text>
-          <Text style={styles.body}>
-            Aby byl tento rozdíl pokryt po dobu {formatYears(inputs.withdrawalYears)},
-            je potřeba vytvořit kapitál přibližně{" "}
-            {formatCZK(result.requiredCapital)}. To odpovídá pravidelnému
-            odkládání asi {formatCZK(result.monthlyContribution)} měsíčně po
-            následujících {formatYears(result.yearsToRetirement)} (předpoklad
-            výnosu {formatPercent(inputs.accumulationYield)} p.a. v akumulaci a{" "}
-            {formatPercent(inputs.withdrawalYield)} p.a. během čerpání).
-          </Text>
+        {/* 2x2 grid of metrics */}
+        <View style={styles.metricsGrid}>
+          <MetricCell
+            step="01"
+            title="Realita"
+            value={formatCZK(result.statePension.monthly)}
+            description={`Orientační státní starobní důchod ${formatCZK(result.statePension.monthly)} měsíčně. Z toho základní výměra ${formatCZK(result.statePension.basicComponent)} a procentní výměra ${formatCZK(result.statePension.percentageComponent)}.`}
+          />
+          <MetricCell
+            step="02"
+            title="Očekávání"
+            value={formatCZK(result.targetIncome)}
+            description={`Pro zachování životní úrovně by bylo ideální mít ${formatCZK(result.targetIncome)} měsíčně, tedy ${replacementPct} % současného příjmu.`}
+          />
+          <MetricCell
+            step="03"
+            title="Rozdíl"
+            value={formatCZK(result.monthlyGap)}
+            tone="accent"
+            description={`Rozdíl ${formatCZK(result.monthlyGap)} měsíčně je třeba pokrýt z vlastních zdrojů — vlastní investice, renta nebo jiný kapitál.`}
+          />
+          <MetricCell
+            step="04"
+            title="Řešení"
+            value={formatCZK(result.monthlyContribution)}
+            tone="secondary"
+            description={`Pro pokrytí po dobu ${formatYears(inputs.withdrawalYears)} je potřeba kapitál ${formatCZK(result.requiredCapital)}. Odpovídá ukládání ${formatCZK(result.monthlyContribution)} měsíčně po ${formatYears(result.yearsToRetirement)} při výnosu ${formatPercent(inputs.accumulationYield, 0)} p.a.`}
+          />
         </View>
 
         {/* Vstupy */}
@@ -496,25 +510,25 @@ export function ClientReport({
 
         {/* Summary metrics */}
         <View style={styles.metricsRow}>
-          <View style={styles.metricCell}>
+          <View style={styles.portfolioMetricCell}>
             <Text style={styles.inputLabel}>Vážený výnos</Text>
             <Text style={[styles.bigNumber, { fontSize: 18, marginBottom: 2 }]}>
               {formatPercent(portfolioMetrics.expectedReturn, 1)}
             </Text>
           </View>
-          <View style={styles.metricCell}>
+          <View style={styles.portfolioMetricCell}>
             <Text style={styles.inputLabel}>Vážený TER</Text>
             <Text style={[styles.bigNumber, { fontSize: 18, marginBottom: 2 }]}>
               {formatPercent(portfolioMetrics.weightedTER, 2)}
             </Text>
           </View>
-          <View style={styles.metricCell}>
+          <View style={styles.portfolioMetricCell}>
             <Text style={styles.inputLabel}>Vážené SRI</Text>
             <Text style={[styles.bigNumber, { fontSize: 18, marginBottom: 2 }]}>
               {portfolioMetrics.weightedSRI.toFixed(1)} / 7
             </Text>
           </View>
-          <View style={styles.metricCell}>
+          <View style={styles.portfolioMetricCell}>
             <Text style={styles.inputLabel}>Roční TER náklady</Text>
             <Text style={[styles.bigNumber, { fontSize: 18, marginBottom: 2 }]}>
               {formatCZK(
