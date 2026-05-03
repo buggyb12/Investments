@@ -1,5 +1,4 @@
-import { BlobProvider } from "@react-pdf/renderer";
-import { Download, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { motion } from "motion/react";
 import type { ScenarioResult } from "../lib/pension";
 import type { ClientInputs } from "../state/useClientInputs";
@@ -8,7 +7,7 @@ import { formatCZK, formatYears } from "../lib/format";
 import { MetricCard } from "./MetricCard";
 import { GapChart } from "./GapChart";
 import { ProjectionChart } from "./ProjectionChart";
-import { ClientReport } from "./pdf/ClientReport";
+import { DownloadReportButton } from "./DownloadReportButton";
 
 interface ResultsPanelProps {
   result: ScenarioResult;
@@ -145,39 +144,12 @@ export function ResultsPanel({ result, inputs, portfolio }: ResultsPanelProps) {
           odchodu.
         </p>
 
-        <BlobProvider
-          document={
-            <ClientReport
-              result={result}
-              inputs={inputs}
-              allocation={portfolio.allocation}
-              portfolioMetrics={portfolio.metrics}
-            />
-          }
-        >
-          {({ url, loading, error }) => {
-            if (error) {
-              return (
-                <span className="text-xs text-accent">Chyba generování PDF</span>
-              );
-            }
-            return (
-              <a
-                href={url ?? "#"}
-                download={`duchod-report-${(inputs.clientName || "klient").replace(/\s+/g, "-").toLowerCase()}.pdf`}
-                aria-disabled={loading || !url}
-                className={`group inline-flex items-center gap-2 px-5 py-3 bg-ink text-paper text-sm tracking-wide transition-all hover:gap-3 ${
-                  loading || !url
-                    ? "opacity-50 pointer-events-none"
-                    : ""
-                }`}
-              >
-                <Download size={14} />
-                <span>{loading ? "Generuji…" : "Stáhnout report (PDF)"}</span>
-              </a>
-            );
-          }}
-        </BlobProvider>
+        <DownloadReportButton
+          result={result}
+          inputs={inputs}
+          allocation={portfolio.allocation}
+          portfolioMetrics={portfolio.metrics}
+        />
       </motion.div>
     </div>
   );

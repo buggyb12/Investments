@@ -1,6 +1,5 @@
 import {
   Document,
-  Font,
   Link,
   Page,
   StyleSheet,
@@ -18,41 +17,18 @@ import {
 } from "../../lib/portfolio";
 import type { ClientInputs } from "../../state/useClientInputs";
 
-// Register fonts that include Czech diacritics
-Font.register({
-  family: "Fraunces",
-  fonts: [
-    {
-      src: "https://fonts.gstatic.com/s/fraunces/v32/6NUh8FyLNQOQZAnv9ZwNjucMHVn85Ni7emAevr1ozeIrnCxvR-Cg.ttf",
-      fontWeight: 400,
-    },
-    {
-      src: "https://fonts.gstatic.com/s/fraunces/v32/6NUh8FyLNQOQZAnv9ZwNjucMHVn85Ni7emAevr1ozeIrnCxvBeGg.ttf",
-      fontWeight: 600,
-    },
-  ],
-});
-
-Font.register({
-  family: "InterTight",
-  fonts: [
-    {
-      src: "https://fonts.gstatic.com/s/intertight/v7/NGSnv5HMAFg6IuGlBNMjxLwJKfkpC02uHZ4LQ-A.ttf",
-      fontWeight: 400,
-    },
-    {
-      src: "https://fonts.gstatic.com/s/intertight/v7/NGSnv5HMAFg6IuGlBNMjxL4LKfkpC02uHZ4LQ-A.ttf",
-      fontWeight: 600,
-    },
-  ],
-});
+// Use built-in PDF fonts (Helvetica + Times) for full reliability —
+// no network dependency, no Google Fonts CDN URL hashes that drift.
+// Both have Latin-1/WinAnsi coverage so Czech diacritics render fine.
+const DISPLAY_FONT = "Times-Bold";
+const BODY_FONT = "Helvetica";
 
 const styles = StyleSheet.create({
   page: {
     padding: 56,
     backgroundColor: "#F4F1EA",
     color: "#1A1815",
-    fontFamily: "InterTight",
+    fontFamily: BODY_FONT,
     fontSize: 10,
     lineHeight: 1.55,
   },
@@ -66,7 +42,7 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   brand: {
-    fontFamily: "Fraunces",
+    fontFamily: DISPLAY_FONT,
     fontSize: 16,
     fontWeight: 600,
     letterSpacing: -0.4,
@@ -79,7 +55,7 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
   clientLine: {
-    fontFamily: "Fraunces",
+    fontFamily: DISPLAY_FONT,
     fontSize: 28,
     marginBottom: 6,
     letterSpacing: -0.6,
@@ -107,13 +83,13 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   sectionTitle: {
-    fontFamily: "Fraunces",
+    fontFamily: DISPLAY_FONT,
     fontSize: 14,
     fontWeight: 600,
     letterSpacing: -0.2,
   },
   bigNumber: {
-    fontFamily: "Fraunces",
+    fontFamily: DISPLAY_FONT,
     fontSize: 32,
     fontWeight: 600,
     letterSpacing: -0.8,
@@ -187,7 +163,7 @@ const styles = StyleSheet.create({
   fundColMini: { width: 42, fontSize: 9, textAlign: "right" },
   fundColAlloc: {
     width: 60,
-    fontFamily: "Fraunces",
+    fontFamily: DISPLAY_FONT,
     fontSize: 13,
     fontWeight: 600,
     textAlign: "right",
@@ -442,7 +418,7 @@ export function ClientReport({
             <Text style={[styles.fundColMini, { color: "#8B857A", fontSize: 7, letterSpacing: 1 }]}>
               VÝNOS
             </Text>
-            <Text style={[styles.fundColAlloc, { color: "#8B857A", fontSize: 7, letterSpacing: 1, fontFamily: "InterTight", fontWeight: 400 }]}>
+            <Text style={[styles.fundColAlloc, { color: "#8B857A", fontSize: 7, letterSpacing: 1, fontFamily: BODY_FONT, fontWeight: 400 }]}>
               PODÍL
             </Text>
           </View>
@@ -455,15 +431,14 @@ export function ClientReport({
                 <View
                   style={[styles.fundSwatch, { backgroundColor: FUND_COLORS[id] }]}
                 />
-                <Link src={f.url} style={[styles.fundColTicker, { color: "#1A1815" }]}>
-                  {f.ticker}
-                </Link>
+                <Text style={styles.fundColTicker}>{f.ticker}</Text>
                 <View style={styles.fundColName}>
-                  <Link src={f.url} style={{ color: "#1A1815", textDecoration: "none" }}>
-                    {f.shortName}
-                  </Link>
+                  <Text>{f.shortName}</Text>
                   <Text style={{ fontSize: 7, color: "#8B857A", marginTop: 1 }}>
-                    {f.role} · ISIN {f.isin}
+                    {f.role} · ISIN {f.isin} ·{" "}
+                    <Link src={f.url} style={{ color: "#8B857A" }}>
+                      justETF.com
+                    </Link>
                   </Text>
                 </View>
                 <Text style={styles.fundColMini}>{formatPercent(f.ter, 2)}</Text>

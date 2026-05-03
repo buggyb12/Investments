@@ -4,6 +4,7 @@ import { usePortfolio } from "./state/usePortfolio";
 import { InputForm } from "./components/InputForm";
 import { ResultsPanel } from "./components/ResultsPanel";
 import { PortfolioStep } from "./components/PortfolioStep";
+import { DownloadReportButton } from "./components/DownloadReportButton";
 
 export function App() {
   const { inputs, result, set } = useClientInputs();
@@ -13,19 +14,24 @@ export function App() {
     <div className="relative z-10 min-h-screen">
       {/* Top bar */}
       <header className="border-b border-line">
-        <div className="max-w-[1400px] mx-auto px-6 md:px-12 py-6 flex items-end justify-between">
+        <div className="max-w-[1400px] mx-auto px-6 md:px-12 py-5 flex items-center justify-between gap-4">
           <div className="flex items-baseline gap-3">
             <span className="display text-2xl font-medium tracking-tightest text-ink">
               Důchod
               <span className="text-accent">.</span>
             </span>
-            <span className="text-[11px] uppercase tracking-[0.25em] text-muted">
+            <span className="hidden sm:inline text-[11px] uppercase tracking-[0.25em] text-muted">
               Kalkulačka pro poradce
             </span>
           </div>
-          <p className="hidden md:block text-[11px] uppercase tracking-[0.22em] text-muted">
-            v0.1 / 2025
-          </p>
+          <DownloadReportButton
+            result={result}
+            inputs={inputs}
+            allocation={portfolio.allocation}
+            portfolioMetrics={portfolio.metrics}
+            variant="ghost"
+            label="Stáhnout PDF"
+          />
         </div>
       </header>
 
@@ -78,6 +84,26 @@ export function App() {
             monthlyContribution={result.monthlyContribution}
             requiredYield={inputs.accumulationYield}
             portfolio={portfolio}
+          />
+        </div>
+
+        {/* Final CTA */}
+        <div className="mt-20 pt-10 border-t border-line flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="space-y-1 max-w-md">
+            <p className="display text-2xl text-ink leading-tight">
+              Stáhnout report pro klienta
+            </p>
+            <p className="text-xs text-muted leading-relaxed">
+              Dvě stránky A4: gap analýza + investiční portfolio s alokací,
+              fondy a měsíčním rozdělením úložky.
+            </p>
+          </div>
+          <DownloadReportButton
+            result={result}
+            inputs={inputs}
+            allocation={portfolio.allocation}
+            portfolioMetrics={portfolio.metrics}
+            label="Stáhnout report (PDF)"
           />
         </div>
       </main>
