@@ -1,5 +1,6 @@
 import {
   Document,
+  Font,
   Link,
   Page,
   StyleSheet,
@@ -17,11 +18,26 @@ import {
 } from "../../lib/portfolio";
 import type { ClientInputs } from "../../state/useClientInputs";
 
-// Use built-in PDF fonts (Helvetica + Times) for full reliability —
-// no network dependency, no Google Fonts CDN URL hashes that drift.
-// Both have Latin-1/WinAnsi coverage so Czech diacritics render fine.
-const DISPLAY_FONT = "Times-Bold";
-const BODY_FONT = "Helvetica";
+// Built-in PDF fonts (Helvetica/Times) use WinAnsi encoding, which
+// silently DROPS Czech-specific diacritics (č, ř, ě, š, ž, ů, ť) —
+// they fall outside Latin-1. We bundle Roboto + Roboto Slab WOFF
+// files (Apache 2.0) in public/fonts and serve them from the same
+// origin as the app. No CDN dependency.
+Font.register({
+  family: "Roboto",
+  fonts: [
+    { src: "/fonts/Roboto-Regular.woff", fontWeight: 400 },
+    { src: "/fonts/Roboto-Bold.woff", fontWeight: 700 },
+  ],
+});
+
+Font.register({
+  family: "RobotoSlab",
+  fonts: [{ src: "/fonts/Roboto-Slab-Bold.woff", fontWeight: 700 }],
+});
+
+const DISPLAY_FONT = "RobotoSlab";
+const BODY_FONT = "Roboto";
 
 const styles = StyleSheet.create({
   page: {
@@ -44,7 +60,7 @@ const styles = StyleSheet.create({
   brand: {
     fontFamily: DISPLAY_FONT,
     fontSize: 16,
-    fontWeight: 600,
+    fontWeight: 700,
     letterSpacing: -0.4,
   },
   meta: {
@@ -85,13 +101,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontFamily: DISPLAY_FONT,
     fontSize: 14,
-    fontWeight: 600,
+    fontWeight: 700,
     letterSpacing: -0.2,
   },
   bigNumber: {
     fontFamily: DISPLAY_FONT,
     fontSize: 32,
-    fontWeight: 600,
+    fontWeight: 700,
     letterSpacing: -0.8,
     marginBottom: 6,
   },
@@ -158,14 +174,14 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   fundSwatch: { width: 10, height: 10, marginRight: 4 },
-  fundColTicker: { width: 50, fontSize: 9, fontWeight: 600 },
+  fundColTicker: { width: 50, fontSize: 9, fontWeight: 700 },
   fundColName: { flex: 1, fontSize: 9 },
   fundColMini: { width: 42, fontSize: 9, textAlign: "right" },
   fundColAlloc: {
     width: 60,
     fontFamily: DISPLAY_FONT,
     fontSize: 13,
-    fontWeight: 600,
+    fontWeight: 700,
     textAlign: "right",
   },
   metricsRow: {
