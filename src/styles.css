@@ -4,8 +4,8 @@
 
 @layer base {
   html {
-    background-color: #f4f1ea;
-    color: #1a1815;
+    background-color: #fbf1ec;
+    color: #1a1a1a;
     font-family: "Inter Tight", ui-sans-serif, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -13,9 +13,9 @@
 
   body {
     background:
-      radial-gradient(ellipse at top left, rgba(156, 61, 46, 0.04), transparent 55%),
-      radial-gradient(ellipse at bottom right, rgba(60, 90, 62, 0.05), transparent 60%),
-      #f4f1ea;
+      radial-gradient(ellipse at top left, rgba(233, 78, 27, 0.06), transparent 55%),
+      radial-gradient(ellipse at bottom right, rgba(30, 58, 92, 0.04), transparent 60%),
+      #fbf1ec;
     min-height: 100dvh;
   }
 
@@ -32,8 +32,8 @@
   }
 
   ::selection {
-    background-color: rgba(156, 61, 46, 0.18);
-    color: #1a1815;
+    background-color: rgba(233, 78, 27, 0.22);
+    color: #1a1a1a;
   }
 }
 
@@ -68,13 +68,13 @@ input[type="range"] {
 
 input[type="range"]::-webkit-slider-runnable-track {
   height: 2px;
-  background: rgba(26, 24, 21, 0.18);
+  background: rgba(26, 26, 26, 0.18);
   border-radius: 0;
 }
 
 input[type="range"]::-moz-range-track {
   height: 2px;
-  background: rgba(26, 24, 21, 0.18);
+  background: rgba(26, 26, 26, 0.18);
 }
 
 input[type="range"]::-webkit-slider-thumb {
@@ -83,10 +83,10 @@ input[type="range"]::-webkit-slider-thumb {
   width: 14px;
   height: 14px;
   border-radius: 999px;
-  background: #1a1815;
+  background: #1a1a1a;
   margin-top: -6px;
-  border: 2px solid #f4f1ea;
-  box-shadow: 0 0 0 1px #1a1815;
+  border: 2px solid #fbf1ec;
+  box-shadow: 0 0 0 1px #1a1a1a;
   cursor: pointer;
   transition: transform 120ms ease;
 }
@@ -99,9 +99,9 @@ input[type="range"]::-moz-range-thumb {
   width: 14px;
   height: 14px;
   border-radius: 999px;
-  background: #1a1815;
-  border: 2px solid #f4f1ea;
-  box-shadow: 0 0 0 1px #1a1815;
+  background: #1a1a1a;
+  border: 2px solid #fbf1ec;
+  box-shadow: 0 0 0 1px #1a1a1a;
   cursor: pointer;
 }
 

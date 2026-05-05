@@ -39,16 +39,16 @@ export function ProjectionChart({ data, targetCapital }: ProjectionChartProps) {
         >
           <defs>
             <linearGradient id="capitalFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#3C5A3E" stopOpacity={0.35} />
-              <stop offset="100%" stopColor="#3C5A3E" stopOpacity={0.02} />
+              <stop offset="0%" stopColor="#1E3A5C" stopOpacity={0.35} />
+              <stop offset="100%" stopColor="#1E3A5C" stopOpacity={0.02} />
             </linearGradient>
           </defs>
           <XAxis
             dataKey="year"
-            axisLine={{ stroke: "rgba(26,24,21,0.18)" }}
+            axisLine={{ stroke: "rgba(26,26,26,0.18)" }}
             tickLine={false}
             tick={{
-              fill: "#8B857A",
+              fill: "#7C7570",
               fontSize: 10,
               fontFamily: "JetBrains Mono, monospace",
             }}
@@ -63,29 +63,29 @@ export function ProjectionChart({ data, targetCapital }: ProjectionChartProps) {
             ]}
           />
           <Tooltip
-            cursor={{ stroke: "rgba(26,24,21,0.25)", strokeWidth: 1 }}
+            cursor={{ stroke: "rgba(26,26,26,0.25)", strokeWidth: 1 }}
             contentStyle={{
-              background: "#F4F1EA",
-              border: "1px solid rgba(26,24,21,0.18)",
+              background: "#FBF1EC",
+              border: "1px solid rgba(26,26,26,0.18)",
               borderRadius: 0,
               fontSize: 12,
               fontFamily: "JetBrains Mono, monospace",
               padding: "6px 10px",
             }}
-            labelStyle={{ color: "#8B857A", fontSize: 10, marginBottom: 2 }}
+            labelStyle={{ color: "#7C7570", fontSize: 10, marginBottom: 2 }}
             formatter={(v: number) => [formatCZK(v), "Kapitál"]}
           />
           <Area
             type="monotone"
             dataKey="value"
-            stroke="#3C5A3E"
+            stroke="#1E3A5C"
             strokeWidth={1.5}
             fill="url(#capitalFill)"
           />
           {showTarget && (
             <ReferenceLine
               y={targetCapital}
-              stroke="#9C3D2E"
+              stroke="#E94E1B"
               strokeWidth={1}
               strokeDasharray="3 3"
               ifOverflow="extendDomain"
@@ -95,7 +95,7 @@ export function ProjectionChart({ data, targetCapital }: ProjectionChartProps) {
                 position="insideTopRight"
                 offset={6}
                 style={{
-                  fill: "#9C3D2E",
+                  fill: "#E94E1B",
                   fontSize: 10,
                   fontFamily: "JetBrains Mono, monospace",
                   letterSpacing: "0.02em",

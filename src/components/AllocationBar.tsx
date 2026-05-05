@@ -2,9 +2,9 @@ import { motion } from "motion/react";
 import { FUND_ORDER, FUNDS, type Allocation } from "../lib/portfolio";
 
 const FILL: Record<keyof Allocation, string> = {
-  aggh: "#3C5A3E",
-  vwce: "#1A1815",
-  cspx: "#9C3D2E",
+  aggh: "#1E3A5C",
+  vwce: "#1A1A1A",
+  cspx: "#E94E1B",
   sgln: "#B68A35",
 };
 

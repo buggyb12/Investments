@@ -5,12 +5,12 @@ export default {
   theme: {
     extend: {
       colors: {
-        paper: "#F4F1EA",
-        ink: "#1A1815",
-        muted: "#8B857A",
-        accent: "#9C3D2E",
-        secondary: "#3C5A3E",
-        line: "rgba(26, 24, 21, 0.12)",
+        paper: "#FBF1EC",
+        ink: "#1A1A1A",
+        muted: "#7C7570",
+        accent: "#E94E1B",
+        secondary: "#1E3A5C",
+        line: "rgba(26, 26, 26, 0.12)",
       },
       fontFamily: {
         display: ['"Fraunces"', "ui-serif", "Georgia", "serif"],

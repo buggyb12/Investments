@@ -16,8 +16,8 @@ interface GapChartProps {
 
 export function GapChart({ statePension, targetIncome }: GapChartProps) {
   const data = [
-    { name: "Státní důchod", value: Math.round(statePension), fill: "#1A1815" },
-    { name: "Cílový příjem", value: Math.round(targetIncome), fill: "#9C3D2E" },
+    { name: "Státní důchod", value: Math.round(statePension), fill: "#1A1A1A" },
+    { name: "Cílový příjem", value: Math.round(targetIncome), fill: "#E94E1B" },
   ];
 
   return (
@@ -30,10 +30,10 @@ export function GapChart({ statePension, targetIncome }: GapChartProps) {
         >
           <XAxis
             dataKey="name"
-            axisLine={{ stroke: "rgba(26,24,21,0.18)" }}
+            axisLine={{ stroke: "rgba(26,26,26,0.18)" }}
             tickLine={false}
             tick={{
-              fill: "#8B857A",
+              fill: "#7C7570",
               fontSize: 11,
               fontFamily: "Inter Tight, sans-serif",
               letterSpacing: "0.05em",
@@ -50,7 +50,7 @@ export function GapChart({ statePension, targetIncome }: GapChartProps) {
               position="top"
               formatter={(v: number) => formatCZK(v)}
               style={{
-                fill: "#1A1815",
+                fill: "#1A1A1A",
                 fontSize: 12,
                 fontFamily: "JetBrains Mono, monospace",
                 fontWeight: 500,

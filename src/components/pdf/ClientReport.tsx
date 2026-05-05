@@ -44,8 +44,8 @@ const styles = StyleSheet.create({
     paddingTop: 40,
     paddingBottom: 56,
     paddingHorizontal: 40,
-    backgroundColor: "#F4F1EA",
-    color: "#1A1815",
+    backgroundColor: "#FBF1EC",
+    color: "#1A1A1A",
     fontFamily: BODY_FONT,
     fontSize: 9.5,
     lineHeight: 1.45,
@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     paddingBottom: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(26,24,21,0.18)",
+    borderBottomColor: "rgba(26,26,26,0.18)",
     marginBottom: 18,
   },
   brand: {
@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
   },
   meta: {
     fontSize: 8,
-    color: "#8B857A",
+    color: "#7C7570",
     textTransform: "uppercase",
     letterSpacing: 1.5,
     textAlign: "right",
@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
   },
   subline: {
     fontSize: 9,
-    color: "#8B857A",
+    color: "#7C7570",
     lineHeight: 1.4,
     marginBottom: 18,
   },
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: "rgba(26,24,21,0.18)",
+    borderTopColor: "rgba(26,26,26,0.18)",
   },
   sectionHeader: {
     flexDirection: "row",
@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
   },
   step: {
     fontSize: 7.5,
-    color: "#8B857A",
+    color: "#7C7570",
     letterSpacing: 1.5,
     textTransform: "uppercase",
   },
@@ -131,23 +131,23 @@ const styles = StyleSheet.create({
   },
   bigNumberUnit: {
     fontSize: 8.5,
-    color: "#8B857A",
+    color: "#7C7570",
     marginLeft: 4,
   },
   bigNumberAccent: {
-    color: "#9C3D2E",
+    color: "#E94E1B",
   },
   bigNumberSecondary: {
-    color: "#3C5A3E",
+    color: "#1E3A5C",
   },
   body: {
     fontSize: 9,
-    color: "#1A1815",
+    color: "#1A1A1A",
     lineHeight: 1.45,
   },
   bodyMuted: {
     fontSize: 9,
-    color: "#8B857A",
+    color: "#7C7570",
   },
   twoCol: {
     flexDirection: "row",
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
     marginTop: 14,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: "rgba(26,24,21,0.18)",
+    borderTopColor: "rgba(26,26,26,0.18)",
     flexDirection: "row",
     flexWrap: "wrap",
   },
@@ -170,14 +170,14 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 7,
-    color: "#8B857A",
+    color: "#7C7570",
     letterSpacing: 1.2,
     textTransform: "uppercase",
     marginBottom: 2,
   },
   inputValue: {
     fontSize: 10,
-    color: "#1A1815",
+    color: "#1A1A1A",
   },
   // Page 2 — allocation
   allocBar: {
@@ -186,14 +186,14 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "rgba(26,24,21,0.18)",
+    borderColor: "rgba(26,26,26,0.18)",
   },
   fundRow: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(26,24,21,0.10)",
+    borderBottomColor: "rgba(26,26,26,0.10)",
     gap: 10,
   },
   fundSwatch: { width: 10, height: 10, marginRight: 4 },
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
     marginTop: 18,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: "rgba(26,24,21,0.18)",
+    borderTopColor: "rgba(26,26,26,0.18)",
   },
   portfolioMetricCell: { flex: 1 },
   footer: {
@@ -223,11 +223,11 @@ const styles = StyleSheet.create({
     right: 56,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: "rgba(26,24,21,0.18)",
+    borderTopColor: "rgba(26,26,26,0.18)",
     flexDirection: "row",
     justifyContent: "space-between",
     fontSize: 7,
-    color: "#8B857A",
+    color: "#7C7570",
     letterSpacing: 0.8,
   },
 });
@@ -276,9 +276,9 @@ function MetricCell({ step, title, value, description, tone = "default" }: Metri
 }
 
 const FUND_COLORS: Record<string, string> = {
-  aggh: "#3C5A3E",
-  vwce: "#1A1815",
-  cspx: "#9C3D2E",
+  aggh: "#1E3A5C",
+  vwce: "#1A1A1A",
+  cspx: "#E94E1B",
   sgln: "#B68A35",
 };
 
@@ -428,27 +428,27 @@ export function ClientReport({
               flexDirection: "row",
               paddingBottom: 6,
               borderBottomWidth: 1,
-              borderBottomColor: "rgba(26,24,21,0.18)",
+              borderBottomColor: "rgba(26,26,26,0.18)",
               gap: 10,
             }}
           >
             <View style={{ width: 14 }} />
-            <Text style={[styles.fundColTicker, { color: "#8B857A", fontSize: 7, letterSpacing: 1 }]}>
+            <Text style={[styles.fundColTicker, { color: "#7C7570", fontSize: 7, letterSpacing: 1 }]}>
               TICKER
             </Text>
-            <Text style={[styles.fundColName, { color: "#8B857A", fontSize: 7, letterSpacing: 1 }]}>
+            <Text style={[styles.fundColName, { color: "#7C7570", fontSize: 7, letterSpacing: 1 }]}>
               FOND / ROLE
             </Text>
-            <Text style={[styles.fundColMini, { color: "#8B857A", fontSize: 7, letterSpacing: 1 }]}>
+            <Text style={[styles.fundColMini, { color: "#7C7570", fontSize: 7, letterSpacing: 1 }]}>
               TER
             </Text>
-            <Text style={[styles.fundColMini, { color: "#8B857A", fontSize: 7, letterSpacing: 1 }]}>
+            <Text style={[styles.fundColMini, { color: "#7C7570", fontSize: 7, letterSpacing: 1 }]}>
               SRI
             </Text>
-            <Text style={[styles.fundColMini, { color: "#8B857A", fontSize: 7, letterSpacing: 1 }]}>
+            <Text style={[styles.fundColMini, { color: "#7C7570", fontSize: 7, letterSpacing: 1 }]}>
               VÝNOS
             </Text>
-            <Text style={[styles.fundColAlloc, { color: "#8B857A", fontSize: 7, letterSpacing: 1, fontFamily: BODY_FONT, fontWeight: 400 }]}>
+            <Text style={[styles.fundColAlloc, { color: "#7C7570", fontSize: 7, letterSpacing: 1, fontFamily: BODY_FONT, fontWeight: 400 }]}>
               PODÍL
             </Text>
           </View>
@@ -464,9 +464,9 @@ export function ClientReport({
                 <Text style={styles.fundColTicker}>{f.ticker}</Text>
                 <View style={styles.fundColName}>
                   <Text>{f.shortName}</Text>
-                  <Text style={{ fontSize: 7, color: "#8B857A", marginTop: 1 }}>
+                  <Text style={{ fontSize: 7, color: "#7C7570", marginTop: 1 }}>
                     {f.role} · ISIN {f.isin} ·{" "}
-                    <Link src={f.url} style={{ color: "#8B857A" }}>
+                    <Link src={f.url} style={{ color: "#7C7570" }}>
                       justETF.com
                     </Link>
                   </Text>
@@ -498,7 +498,7 @@ export function ClientReport({
                   justifyContent: "space-between",
                   paddingVertical: 4,
                   borderBottomWidth: 1,
-                  borderBottomColor: "rgba(26,24,21,0.08)",
+                  borderBottomColor: "rgba(26,26,26,0.08)",
                 }}
               >
                 <Text style={{ fontSize: 9 }}>{f.shortName}</Text>
@@ -541,13 +541,13 @@ export function ClientReport({
         <Text
           style={{
             fontSize: 8,
-            color: "#8B857A",
+            color: "#7C7570",
             marginTop: 18,
             lineHeight: 1.5,
           }}
         >
           Zdroj dat (TER, SRI, KID, historický výnos):{" "}
-          <Link src="https://www.justetf.com" style={{ color: "#8B857A" }}>
+          <Link src="https://www.justetf.com" style={{ color: "#7C7570" }}>
             justETF.com
           </Link>
           . Tickery a ISIN jsou klikatelné — odkazují na profil fondu. Vstupní
