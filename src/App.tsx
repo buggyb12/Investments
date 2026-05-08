@@ -7,7 +7,8 @@ import { PortfolioStep } from "./components/PortfolioStep";
 import { DownloadReportButton } from "./components/DownloadReportButton";
 
 export function App() {
-  const { inputs, result, set } = useClientInputs();
+  const { inputs, result, set, setDetailed, setYear, fillAllYears } =
+    useClientInputs();
   const portfolio = usePortfolio(result.yearsToRetirement);
 
   return (
@@ -71,7 +72,13 @@ export function App() {
       <main className="max-w-[1400px] mx-auto px-6 md:px-12 py-12 md:py-16">
         <div className="grid grid-cols-12 gap-x-10 gap-y-16">
           <section className="col-span-12 lg:col-span-5">
-            <InputForm inputs={inputs} onChange={set} />
+            <InputForm
+              inputs={inputs}
+              onChange={set}
+              setDetailed={setDetailed}
+              setYear={setYear}
+              fillAllYears={fillAllYears}
+            />
           </section>
           <section className="col-span-12 lg:col-span-7">
             <ResultsPanel result={result} inputs={inputs} portfolio={portfolio} />

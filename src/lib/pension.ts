@@ -196,6 +196,13 @@ export interface ScenarioInput {
   accumulationYield: number;
   withdrawalYield: number;
   currentSavings: number;
+  /**
+   * Optional. When set, computeScenario uses this as the state pension
+   * instead of running its own approximation. Lets a caller plug in a
+   * different engine (e.g. the detailed ČSSZ-coefficient calculator)
+   * without changing the rest of the gap/capital pipeline.
+   */
+  statePensionOverride?: StatePensionResult;
 }
 
 export interface ScenarioResult {
@@ -218,11 +225,13 @@ export function computeScenario(input: ScenarioInput): ScenarioResult {
     (365.25 * 24 * 60 * 60 * 1000);
   const yearsToRetirement = Math.max(0, input.plannedRetirementAge - ageNow);
 
-  const statePension = estimateStatePension({
-    grossMonthly: input.grossMonthly,
-    yearsInsured: input.yearsInsured,
-    incomeType: input.incomeType,
-  });
+  const statePension =
+    input.statePensionOverride ??
+    estimateStatePension({
+      grossMonthly: input.grossMonthly,
+      yearsInsured: input.yearsInsured,
+      incomeType: input.incomeType,
+    });
 
   const targetIncome = targetRetirementIncome(
     input.grossMonthly,

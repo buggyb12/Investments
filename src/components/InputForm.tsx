@@ -1,13 +1,27 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { Field } from "./Field";
 import { formatCZK, formatPercent, formatYears } from "../lib/format";
-import type { ClientInputs } from "../state/useClientInputs";
+import type {
+  CalculationMode,
+  ClientInputs,
+  DetailedInputs,
+  DetailedYearRow,
+} from "../state/useClientInputs";
 import type { IncomeType } from "../lib/pension";
+import { CalculationModeToggle } from "./CalculationModeToggle";
+import { DetailedYearsTable } from "./DetailedYearsTable";
+
+const IvkDropZone = lazy(() =>
+  import("./IvkDropZone").then((m) => ({ default: m.IvkDropZone })),
+);
 
 interface InputFormProps {
   inputs: ClientInputs;
   onChange: (patch: Partial<ClientInputs>) => void;
+  setDetailed: (patch: Partial<DetailedInputs>) => void;
+  setYear: (rok: number, patch: Partial<DetailedYearRow>) => void;
+  fillAllYears: (vz: number) => void;
 }
 
 const INCOME_TYPES: { value: IncomeType; label: string; hint: string }[] = [
@@ -24,9 +38,15 @@ const INCOME_TYPES: { value: IncomeType; label: string; hint: string }[] = [
   },
 ];
 
-export function InputForm({ inputs, onChange }: InputFormProps) {
+export function InputForm({
+  inputs,
+  onChange,
+  setDetailed,
+  setYear,
+  fillAllYears,
+}: InputFormProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const incomeHint = INCOME_TYPES.find(t => t.value === inputs.incomeType)?.hint;
+  const incomeHint = INCOME_TYPES.find((t) => t.value === inputs.incomeType)?.hint;
 
   return (
     <form
@@ -34,6 +54,12 @@ export function InputForm({ inputs, onChange }: InputFormProps) {
       onSubmit={(e) => e.preventDefault()}
       autoComplete="off"
     >
+      {/* — Mode toggle — */}
+      <CalculationModeToggle
+        mode={inputs.mode}
+        onChange={(m: CalculationMode) => onChange({ mode: m })}
+      />
+
       {/* — Klient — */}
       <section className="space-y-6">
         <SectionHeader index="01" title="Klient" />
@@ -72,46 +98,75 @@ export function InputForm({ inputs, onChange }: InputFormProps) {
             />
           </Field>
         </div>
-      </section>
-
-      {/* — Příjmy — */}
-      <section className="space-y-6">
-        <SectionHeader index="02" title="Příjmy & práce" />
-
-        <Field label="Typ příjmu" hint={incomeHint}>
-          <SegmentedControl
-            value={inputs.incomeType}
-            onChange={(v) => onChange({ incomeType: v as IncomeType })}
-            options={INCOME_TYPES.map((t) => ({ value: t.value, label: t.label }))}
-          />
-        </Field>
 
         <Field
-          label="Hrubý měsíční příjem"
-          htmlFor="grossMonthly"
+          label="Plánovaný věk odchodu"
+          htmlFor="retirementAge"
           trailing={
             <span className="num text-xs text-muted">
-              {formatCZK(inputs.grossMonthly)}
+              {inputs.plannedRetirementAge} let
             </span>
           }
         >
           <input
-            id="grossMonthly"
+            id="retirementAge"
             type="number"
-            min={0}
-            step={1000}
-            className="input-base num text-lg"
-            value={inputs.grossMonthly || ""}
+            min={50}
+            max={75}
+            className="input-base num"
+            value={inputs.plannedRetirementAge}
             onWheel={(e) => e.currentTarget.blur()}
-            onChange={(e) => onChange({ grossMonthly: Number(e.target.value) || 0 })}
+            onChange={(e) =>
+              onChange({ plannedRetirementAge: Number(e.target.value) || 65 })
+            }
           />
         </Field>
+      </section>
 
-        <div className="grid grid-cols-2 gap-5">
+      {/* — Příjmy: branch by mode — */}
+      {inputs.mode === "approximation" ? (
+        <section className="space-y-6">
+          <SectionHeader index="02" title="Příjmy & práce" />
+
+          <Field label="Typ příjmu" hint={incomeHint}>
+            <SegmentedControl
+              value={inputs.incomeType}
+              onChange={(v) => onChange({ incomeType: v as IncomeType })}
+              options={INCOME_TYPES.map((t) => ({ value: t.value, label: t.label }))}
+            />
+          </Field>
+
+          <Field
+            label="Hrubý měsíční příjem"
+            htmlFor="grossMonthly"
+            trailing={
+              <span className="num text-xs text-muted">
+                {formatCZK(inputs.grossMonthly)}
+              </span>
+            }
+          >
+            <input
+              id="grossMonthly"
+              type="number"
+              min={0}
+              step={1000}
+              className="input-base num text-lg"
+              value={inputs.grossMonthly || ""}
+              onWheel={(e) => e.currentTarget.blur()}
+              onChange={(e) =>
+                onChange({ grossMonthly: Number(e.target.value) || 0 })
+              }
+            />
+          </Field>
+
           <Field
             label="Odpracované roky"
             htmlFor="yearsInsured"
-            trailing={<span className="num text-xs text-muted">{inputs.yearsInsured} let</span>}
+            trailing={
+              <span className="num text-xs text-muted">
+                {inputs.yearsInsured} let
+              </span>
+            }
           >
             <input
               id="yearsInsured"
@@ -122,31 +177,36 @@ export function InputForm({ inputs, onChange }: InputFormProps) {
               value={inputs.yearsInsured}
               onWheel={(e) => e.currentTarget.blur()}
               onChange={(e) =>
-                onChange({ yearsInsured: Math.max(0, Number(e.target.value) || 0) })
+                onChange({
+                  yearsInsured: Math.max(0, Number(e.target.value) || 0),
+                })
               }
             />
           </Field>
-
-          <Field
-            label="Plánovaný věk odchodu"
-            htmlFor="retirementAge"
-            trailing={<span className="num text-xs text-muted">{inputs.plannedRetirementAge} let</span>}
-          >
-            <input
-              id="retirementAge"
-              type="number"
-              min={50}
-              max={75}
-              className="input-base num"
-              value={inputs.plannedRetirementAge}
-              onWheel={(e) => e.currentTarget.blur()}
-              onChange={(e) =>
-                onChange({ plannedRetirementAge: Number(e.target.value) || 65 })
+        </section>
+      ) : (
+        <DetailedYearsTable
+          detailed={inputs.detailed}
+          setDetailed={setDetailed}
+          setYear={setYear}
+          fillAllYears={fillAllYears}
+          pdfDropZone={
+            <Suspense
+              fallback={
+                <div className="text-xs text-muted">Načítám PDF parser…</div>
               }
-            />
-          </Field>
-        </div>
-      </section>
+            >
+              <IvkDropZone
+                onYearsParsed={(rows) => {
+                  for (const r of rows) {
+                    setYear(r.rok, { vz: r.vz, vylouceneDny: r.vylouceneDny });
+                  }
+                }}
+              />
+            </Suspense>
+          }
+        />
+      )}
 
       {/* — Cíl — */}
       <section className="space-y-6">

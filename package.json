@@ -14,6 +14,7 @@
     "@react-pdf/renderer": "^4.1.6",
     "lucide-react": "^0.460.0",
     "motion": "^11.13.1",
+    "pdfjs-dist": "^5.7.284",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "recharts": "^2.13.3"
