@@ -2,9 +2,10 @@ import { useMemo, useState } from "react";
 import { ChevronDown, RotateCcw, Wand2 } from "lucide-react";
 import { formatCZK } from "../lib/format";
 import type { Varianta } from "../lib/pension-detailed";
-import type {
-  DetailedInputs,
-  DetailedYearRow,
+import {
+  effectiveGrossMonthly,
+  type DetailedInputs,
+  type DetailedYearRow,
 } from "../state/useClientInputs";
 import { Field } from "./Field";
 
@@ -38,6 +39,10 @@ export function DetailedYearsTable({
     [detailed.rocniData],
   );
   const filledYears = detailed.rocniData.filter((r) => r.vz > 0).length;
+  const derivedGross = useMemo(
+    () => effectiveGrossMonthly(detailed.rocniData),
+    [detailed.rocniData],
+  );
 
   const visibleRows = showAllYears
     ? detailed.rocniData
@@ -150,7 +155,7 @@ export function DetailedYearsTable({
         </button>
       </div>
 
-      <div className="text-xs text-muted flex items-center gap-4">
+      <div className="text-xs text-muted flex flex-wrap items-center gap-x-4 gap-y-1">
         <span>
           Vyplněno: <span className="num text-ink">{filledYears}</span> z{" "}
           <span className="num">{detailed.rocniData.length}</span> let
@@ -159,6 +164,16 @@ export function DetailedYearsTable({
         <span>
           Úhrn VZ: <span className="num text-ink">{formatCZK(totalVz)}</span>
         </span>
+        {derivedGross > 0 && (
+          <>
+            <span className="num">·</span>
+            <span>
+              Aktuální hrubý příjem (z posledního VZ):{" "}
+              <span className="num text-ink">{formatCZK(derivedGross)}</span>{" "}
+              <span className="text-muted/80">/ měs</span>
+            </span>
+          </>
+        )}
       </div>
 
       {/* Year table */}

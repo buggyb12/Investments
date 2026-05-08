@@ -126,6 +126,21 @@ function reducer(state: ClientInputs, action: Action): ClientInputs {
   }
 }
 
+export function effectiveGrossMonthly(rocniData: DetailedYearRow[]): number {
+  // Approx monthly gross = latest year's annual VZ ÷ 12. VZ is the
+  // social-insurance assessment base — for employees it tracks gross
+  // income, so this is a reasonable proxy for "current income" used
+  // in the replacement-rate target calc.
+  const filled = rocniData.filter((r) => r.vz > 0);
+  if (filled.length === 0) return 0;
+  filled.sort((a, b) => b.rok - a.rok);
+  return Math.round(filled[0].vz / 12);
+}
+
+export function detailedYearsInsured(rocniData: DetailedYearRow[]): number {
+  return rocniData.filter((r) => r.vz > 0).length;
+}
+
 export function useClientInputs() {
   const [inputs, dispatch] = useReducer(reducer, DEFAULT_INPUTS);
 
@@ -134,8 +149,16 @@ export function useClientInputs() {
     const safeBirth = Number.isNaN(birth.getTime()) ? new Date(defaultBirth) : birth;
 
     let statePensionOverride;
+    let effectiveGross = inputs.grossMonthly;
+
     if (inputs.mode === "detailed") {
-      // Run the detailed engine on the year-by-year data.
+      const filledYears = detailedYearsInsured(inputs.detailed.rocniData);
+      // Use the latest year's VZ as proxy for "current income" so target,
+      // gap and capital all work off the user's real numbers, not the
+      // (unused) approximation default.
+      const derivedGross = effectiveGrossMonthly(inputs.detailed.rocniData);
+      if (derivedGross > 0) effectiveGross = derivedGross;
+
       const ageNow =
         (Date.now() - safeBirth.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
       const yearsTo = Math.max(0, inputs.plannedRetirementAge - ageNow);
@@ -144,11 +167,6 @@ export function useClientInputs() {
         safeBirth.getMonth(),
         Math.min(safeBirth.getDate(), 28),
       );
-      const totalDays = inputs.detailed.rocniData.reduce(
-        (sum, row) => sum + (row.vz > 0 ? 365 : 0),
-        0,
-      );
-      const rokyPojisteni = Math.max(0, Math.floor(totalDays / 365));
       const filledRows = inputs.detailed.rocniData
         .filter((r) => r.rok < datumPriznani.getFullYear() && r.vz > 0)
         .map<VstupRok>((r) => ({
@@ -157,15 +175,13 @@ export function useClientInputs() {
           vylouceneDny: r.vylouceneDny,
         }));
 
-      // If the user hasn't filled anything yet, fall back to approximation
-      // shape (zeroes) — gives stable UI before they start typing.
       if (filledRows.length > 0) {
         const v = vypocet({
           datumNarozeni: safeBirth,
           pohlavi: inputs.gender === "male" ? "M" : "Z",
           pocetDeti: inputs.detailed.pocetDeti,
           datumPriznani,
-          rokyPojisteni: rokyPojisteni || filledRows.length,
+          rokyPojisteni: Math.max(filledYears, filledRows.length),
           dnyPresluhovani: inputs.detailed.dnyPresluhovani,
           rokyDat: filledRows,
           varianta: inputs.detailed.varianta,
@@ -178,7 +194,7 @@ export function useClientInputs() {
       birthDate: safeBirth,
       gender: inputs.gender,
       incomeType: inputs.incomeType,
-      grossMonthly: inputs.grossMonthly,
+      grossMonthly: effectiveGross,
       yearsInsured: inputs.yearsInsured,
       plannedRetirementAge: inputs.plannedRetirementAge,
       replacementRate: inputs.replacementRate,
