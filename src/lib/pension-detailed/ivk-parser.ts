@@ -6,13 +6,12 @@
  * Přehled dob pojištění / Přehled dob neevidovaných.
  */
 
-import * as pdfjsLib from "pdfjs-dist";
-// `?worker` makes Vite emit a proper Web Worker bundle for pdfjs and
-// returns a constructor we can hand to GlobalWorkerOptions.workerPort.
-// This is more reliable than the `?url` + workerSrc dance, which
-// depends on the runtime serving the .mjs file with the right MIME
-// and on pdfjs's own dynamic import path.
-import PdfWorker from "pdfjs-dist/build/pdf.worker.mjs?worker";
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
+// Legacy build uses ES5 transpiled output and ships polyfills, which
+// avoids `for-of over undefined` style crashes inside pdfjs's own
+// getTextContent on certain PDFs. The matching legacy worker is
+// emitted by Vite as a self-contained bundle via ?worker.
+import PdfWorker from "pdfjs-dist/legacy/build/pdf.worker.mjs?worker";
 
 let workerInstalled = false;
 function ensureWorker() {
@@ -113,7 +112,13 @@ async function extractLines(buffer: ArrayBuffer): Promise<string[]> {
   const lines: string[] = [];
   for (let p = 1; p <= doc.numPages; p++) {
     const page = await doc.getPage(p);
-    const content = await page.getTextContent();
+    // Pass explicit options — pdfjs v5 changed defaults for
+    // includeMarkedContent/disableNormalization, and some PDFs trigger
+    // crashes inside getTextContent unless these are pinned.
+    const content = await page.getTextContent({
+      includeMarkedContent: false,
+      disableNormalization: false,
+    });
     const rawItems =
       (content && (content as { items?: unknown }).items) || [];
     if (!Array.isArray(rawItems)) continue;
