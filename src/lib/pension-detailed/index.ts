@@ -1,7 +1,10 @@
 export {
+  DEFAULT_INFLATION,
   KOEFICIENTY_2026,
   PREDIKCE_VARIANTY,
+  ROK_DNES,
   ROK_PARAMETRY,
+  deflateToToday,
   duchodovyVek,
   getKoeficienty,
   getParametry,

@@ -38,6 +38,8 @@ export interface ClientInputs {
   withdrawalYears: number;
   accumulationYield: number;
   withdrawalYield: number;
+  /** Inflace pro deflátor nominál → dnešní kupní síla. */
+  inflation: number;
   currentSavings: number;
 
   // Approximation-specific
@@ -73,6 +75,7 @@ export const DEFAULT_INPUTS: ClientInputs = {
   withdrawalYears: 20,
   accumulationYield: 0.05,
   withdrawalYield: 0.03,
+  inflation: 0.03,
   currentSavings: 0,
 
   incomeType: "employee",
@@ -186,7 +189,11 @@ export function useClientInputs() {
           rokyDat: filledRows,
           varianta: inputs.detailed.varianta,
         });
-        statePensionOverride = toStatePensionResult(v);
+        statePensionOverride = toStatePensionResult(
+          v,
+          datumPriznani.getFullYear(),
+          inputs.inflation,
+        );
       }
     }
 

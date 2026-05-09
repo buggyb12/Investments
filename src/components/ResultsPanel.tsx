@@ -1,9 +1,10 @@
-import { AlertCircle } from "lucide-react";
+import { useState } from "react";
+import { AlertCircle, ChevronDown, Info } from "lucide-react";
 import { motion } from "motion/react";
 import type { ScenarioResult } from "../lib/pension";
 import type { ClientInputs } from "../state/useClientInputs";
 import type { usePortfolio } from "../state/usePortfolio";
-import { formatCZK, formatYears } from "../lib/format";
+import { formatCZK, formatPercent, formatYears } from "../lib/format";
 import { MetricCard } from "./MetricCard";
 import { GapChart } from "./GapChart";
 import { ProjectionChart } from "./ProjectionChart";
@@ -16,8 +17,18 @@ interface ResultsPanelProps {
 }
 
 export function ResultsPanel({ result, inputs, portfolio }: ResultsPanelProps) {
-  const noWorkYears = inputs.yearsInsured <= 0;
+  const noWorkYears =
+    inputs.mode === "approximation" && inputs.yearsInsured <= 0;
   const tooLate = result.yearsToRetirement <= 0;
+  const [showRealitaDetail, setShowRealitaDetail] = useState(false);
+
+  const sp = result.statePension;
+  const showsNominalDivergence =
+    sp.rokPriznani > new Date().getFullYear() &&
+    Math.abs(sp.monthlyNominal - sp.monthly) > 1;
+  const realitaSubValue = showsNominalDivergence
+    ? `nominálně v r. ${sp.rokPriznani}: ${formatCZK(sp.monthlyNominal)} / měs`
+    : undefined;
 
   return (
     <div className="space-y-12">
@@ -62,6 +73,26 @@ export function ResultsPanel({ result, inputs, portfolio }: ResultsPanelProps) {
         </div>
       )}
 
+      {/* Today's-purchasing-power explainer banner */}
+      <aside className="flex gap-3 items-start text-sm border-l-4 border-accent bg-accent/5 px-4 py-3">
+        <Info size={16} className="text-accent mt-0.5 shrink-0" />
+        <div className="space-y-2 text-xs leading-relaxed text-ink/80">
+          <p>
+            <strong>Hodnoty jsou v dnešní kupní síle.</strong> Pro klientskou
+            prezentaci pracujeme s konzervativnější variantou — kolik si dnes
+            ({new Date().getFullYear()}) za vyplácený důchod reálně koupíte.
+            Nominální budoucí korunu jsme deflátovali inflací{" "}
+            {formatPercent(inputs.inflation, 1)} p.a.
+          </p>
+          <p className="text-muted">
+            <strong className="text-ink/70">Dnešní kupní síla</strong> = co dnes
+            za to nakoupíš.{" "}
+            <strong className="text-ink/70">Nominál</strong> = částka v korunách
+            roku přiznání důchodu (vyšší číslo, ale zahrnuje budoucí inflaci).
+          </p>
+        </div>
+      </aside>
+
       {/* Metric cards: Realita / Očekávání / Rozdíl / Řešení */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10">
         <MetricCard
@@ -70,7 +101,8 @@ export function ResultsPanel({ result, inputs, portfolio }: ResultsPanelProps) {
           title="Realita"
           value={formatCZK(result.statePension.monthly)}
           unit="/ měs"
-          description="Orientační odhad státního starobního důchodu podle pravidel ČSSZ pro rok 2025."
+          subValue={realitaSubValue}
+          description="Orientační odhad státního starobního důchodu v dnešní kupní síle."
         />
         <MetricCard
           index={1}
@@ -103,6 +135,73 @@ export function ResultsPanel({ result, inputs, portfolio }: ResultsPanelProps) {
           description={solutionDescription({ result, inputs })}
         />
       </div>
+
+      {/* Detail výpočtu — nominal vs today */}
+      {showsNominalDivergence && (
+        <div>
+          <button
+            type="button"
+            onClick={() => setShowRealitaDetail((v) => !v)}
+            className="flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-muted hover:text-ink transition-colors"
+          >
+            <ChevronDown
+              size={14}
+              className={`transition-transform ${showRealitaDetail ? "rotate-180" : ""}`}
+            />
+            <span>{showRealitaDetail ? "Skrýt" : "Zobrazit"} detail výpočtu</span>
+          </button>
+          {showRealitaDetail && (
+            <div className="mt-4 border border-line">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-[10px] uppercase tracking-[0.18em] text-muted bg-ink/5">
+                    <th className="text-left px-3 py-2 font-medium"> </th>
+                    <th className="text-right px-3 py-2 font-medium">
+                      Nominálně (rok {sp.rokPriznani})
+                    </th>
+                    <th className="text-right px-3 py-2 font-medium">
+                      V dnešní kupní síle
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="num">
+                  <tr className="border-t border-line/40">
+                    <td className="px-3 py-2 text-ink/80">Důchod celkem</td>
+                    <td className="px-3 py-2 text-right">
+                      {formatCZK(sp.monthlyNominal)}
+                    </td>
+                    <td className="px-3 py-2 text-right text-ink font-medium">
+                      {formatCZK(sp.monthly)}
+                    </td>
+                  </tr>
+                  <tr className="border-t border-line/40">
+                    <td className="px-3 py-2 text-ink/80">Základní výměra</td>
+                    <td className="px-3 py-2 text-right">
+                      {formatCZK(sp.basicComponentNominal)}
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      {formatCZK(sp.basicComponent)}
+                    </td>
+                  </tr>
+                  <tr className="border-t border-line/40">
+                    <td className="px-3 py-2 text-ink/80">Procentní výměra</td>
+                    <td className="px-3 py-2 text-right">
+                      {formatCZK(sp.percentageComponentNominal)}
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      {formatCZK(sp.percentageComponent)}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <p className="text-[10px] text-muted px-3 py-2 border-t border-line/40 leading-relaxed">
+                Pravý sloupec = co se z důchodu reálně dá nakoupit dnes.
+                Pro gap, kapitál a měsíční úložku používáme tuhle hodnotu.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Charts */}
       <motion.section

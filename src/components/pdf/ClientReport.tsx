@@ -250,10 +250,11 @@ interface MetricCellProps {
   title: string;
   value: string;
   description: string;
+  subValue?: string;
   tone?: "default" | "accent" | "secondary";
 }
 
-function MetricCell({ step, title, value, description, tone = "default" }: MetricCellProps) {
+function MetricCell({ step, title, value, description, subValue, tone = "default" }: MetricCellProps) {
   const valueStyle =
     tone === "accent"
       ? [styles.bigNumber, styles.bigNumberAccent]
@@ -270,6 +271,11 @@ function MetricCell({ step, title, value, description, tone = "default" }: Metri
         <Text style={valueStyle}>{value}</Text>
         <Text style={styles.bigNumberUnit}>/ měsíc</Text>
       </View>
+      {subValue && (
+        <Text style={{ fontSize: 7.5, color: "#7C7570", marginTop: -3, marginBottom: 4 }}>
+          {subValue}
+        </Text>
+      )}
       <Text style={styles.body}>{description}</Text>
     </View>
   );
@@ -313,7 +319,8 @@ export function ClientReport({
           {inputs.clientName ? `Pro ${inputs.clientName}` : "Důchodová projekce"}
         </Text>
         <Text style={styles.subline}>
-          Do důchodu zbývá {formatYears(result.yearsToRetirement)} • orientační odhad
+          Do důchodu zbývá {formatYears(result.yearsToRetirement)} • hodnoty
+          v dnešní kupní síle (deflátováno inflací {formatPercent(inputs.inflation, 1)} p.a.)
         </Text>
 
         {/* 2x2 grid of metrics */}
@@ -322,7 +329,13 @@ export function ClientReport({
             step="01"
             title="Realita"
             value={formatCZK(result.statePension.monthly)}
-            description={`Orientační státní starobní důchod ${formatCZK(result.statePension.monthly)} měsíčně. Z toho základní výměra ${formatCZK(result.statePension.basicComponent)} a procentní výměra ${formatCZK(result.statePension.percentageComponent)}.`}
+            subValue={
+              result.statePension.rokPriznani > new Date().getFullYear() &&
+              Math.abs(result.statePension.monthlyNominal - result.statePension.monthly) > 1
+                ? `nominálně v r. ${result.statePension.rokPriznani}: ${formatCZK(result.statePension.monthlyNominal)}`
+                : undefined
+            }
+            description={`V dnešní kupní síle. Základní výměra ${formatCZK(result.statePension.basicComponent)}, procentní výměra ${formatCZK(result.statePension.percentageComponent)}.`}
           />
           <MetricCell
             step="02"

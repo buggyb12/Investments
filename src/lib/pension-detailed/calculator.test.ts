@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { duchodovyVek, getParametry } from "./parameters";
+import { DEFAULT_INFLATION, deflateToToday, duchodovyVek, getParametry } from "./parameters";
 import { vypocet, type VstupRok } from "./calculator";
+import { toStatePensionResult } from "./adapter";
 
 describe("getParametry 2026", () => {
   it("matches Python parameters", () => {
@@ -122,5 +123,74 @@ describe("vypocet — Python parity", () => {
     expect(v.podrobnosti.rocniDetaily).toHaveLength(40); // 1986..2025
     expect(v.podrobnosti.pocetKalDnu).toBeGreaterThan(40 * 365);
     expect(v.podrobnosti.redukce1).toBe(21546);
+  });
+});
+
+describe("deflateToToday", () => {
+  it("returns input unchanged when rok <= dnes", () => {
+    expect(deflateToToday(100_000, 2026, 2026, 0.02)).toBe(100_000);
+    expect(deflateToToday(100_000, 2020, 2026, 0.02)).toBe(100_000);
+  });
+
+  it("matches Python na_dnesni_kupni_silu reference (2050, 2% p.a.)", () => {
+    // (1.02)^24 ≈ 1.6084 → 100000 / 1.6084 ≈ 62 172
+    const out = deflateToToday(100_000, 2050, 2026, 0.02);
+    expect(out).toBeCloseTo(62_172, -1); // within ~5 Kč
+  });
+
+  it("conservative 3% deflates more aggressively than 2%", () => {
+    const at2 = deflateToToday(100_000, 2050, 2026, 0.02);
+    const at3 = deflateToToday(100_000, 2050, 2026, 0.03);
+    expect(at3).toBeLessThan(at2);
+  });
+
+  it("default inflation is 3%", () => {
+    expect(DEFAULT_INFLATION).toBe(0.03);
+  });
+});
+
+describe("toStatePensionResult adapter", () => {
+  function makeVstup(): Parameters<typeof vypocet>[0] {
+    return {
+      datumNarozeni: new Date(1985, 5, 15),
+      pohlavi: "M",
+      pocetDeti: 0,
+      datumPriznani: new Date(2050, 5, 15),
+      rokyPojisteni: 30,
+      rokyDat: Array.from({ length: 30 }, (_, i) => ({
+        rok: 1996 + i,
+        vymerovaciZaklad: 600_000,
+      })),
+    };
+  }
+
+  it("nominal == today when rokPriznani == today", () => {
+    const v = vypocet({ ...makeVstup(), datumPriznani: new Date(2026, 5, 15) });
+    const r = toStatePensionResult(v, 2026, 0.03, 2026);
+    expect(r.monthly).toBe(r.monthlyNominal);
+    expect(r.basicComponent).toBe(r.basicComponentNominal);
+  });
+
+  it("today's value < nominal for future rokPriznani", () => {
+    const v = vypocet(makeVstup());
+    const r = toStatePensionResult(v, 2050, 0.03, 2026);
+    expect(r.monthly).toBeLessThan(r.monthlyNominal);
+    expect(r.basicComponent).toBeLessThan(r.basicComponentNominal);
+    expect(r.percentageComponent).toBeLessThan(r.percentageComponentNominal);
+  });
+
+  it("higher inflation → lower today value (more aggressive deflation)", () => {
+    const v = vypocet(makeVstup());
+    const at2 = toStatePensionResult(v, 2050, 0.02, 2026);
+    const at4 = toStatePensionResult(v, 2050, 0.04, 2026);
+    expect(at4.monthly).toBeLessThan(at2.monthly);
+    // Nominal stays same regardless of inflation
+    expect(at4.monthlyNominal).toBe(at2.monthlyNominal);
+  });
+
+  it("rokPriznani propagates from arg to result", () => {
+    const v = vypocet(makeVstup());
+    const r = toStatePensionResult(v, 2050, 0.03);
+    expect(r.rokPriznani).toBe(2050);
   });
 });

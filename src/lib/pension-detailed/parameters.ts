@@ -79,6 +79,25 @@ export const PREDIKCE_VARIANTY: Record<Varianta, number> = {
   optimisticka: 0.06,
 };
 
+/** Konzervativní default inflace pro deflátor nominál → dnešní kupní síla. */
+export const DEFAULT_INFLATION = 0.03;
+export const ROK_DNES = new Date().getFullYear();
+
+/**
+ * Převede nominální Kč v `rokPriznani` na dnešní kupní sílu (deflátováno
+ * inflací). Pokud `rokPriznani <= rokDnes`, vrací částku beze změny.
+ */
+export function deflateToToday(
+  amount: number,
+  rokPriznani: number,
+  rokDnes: number = ROK_DNES,
+  inflace: number = DEFAULT_INFLATION,
+): number {
+  if (rokPriznani <= rokDnes) return amount;
+  const deflator = Math.pow(1 + inflace, rokPriznani - rokDnes);
+  return amount / deflator;
+}
+
 /**
  * Vrátí parametry pro daný rok přiznání důchodu.
  * Pro 2026 vrací natvrdo. Pro 2027+ extrapoluje podle zvolené varianty.

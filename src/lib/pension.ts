@@ -58,10 +58,21 @@ export interface StatePensionInput {
 }
 
 export interface StatePensionResult {
+  /** V dnešní kupní síle. Tato hodnota teče dál do gap/kapitál/úložky. */
   monthly: number;
   basicComponent: number;
   percentageComponent: number;
   reducedBase: number;
+  /**
+   * Nominální v korunách roku přiznání důchodu. V approximation módu
+   * (parametry 2025) = monthly. V detailním módu může být výrazně vyšší
+   * pro klienty s dlouhým horizontem.
+   */
+  monthlyNominal: number;
+  basicComponentNominal: number;
+  percentageComponentNominal: number;
+  /** Rok, ve kterém klient dosáhne důchodového věku (= rok přiznání). */
+  rokPriznani: number;
 }
 
 /**
@@ -73,24 +84,37 @@ export function estimateStatePension(input: StatePensionInput): StatePensionResu
   const { grossMonthly, yearsInsured, incomeType } = input;
   const { basicComponent, yearlyAccrualRate } = PENSION_PARAMS_2025;
 
+  const rokPriznaniDefault = new Date().getFullYear();
+
   if (yearsInsured <= 0 || grossMonthly <= 0) {
     return {
       monthly: 0,
       basicComponent: 0,
       percentageComponent: 0,
       reducedBase: 0,
+      monthlyNominal: 0,
+      basicComponentNominal: 0,
+      percentageComponentNominal: 0,
+      rokPriznani: rokPriznaniDefault,
     };
   }
 
   const base = assessmentBaseForIncomeType(grossMonthly, incomeType);
   const reducedBase = reduceAssessmentBase(base);
   const percentageComponent = reducedBase * yearlyAccrualRate * yearsInsured;
+  const monthly = basicComponent + percentageComponent;
 
+  // Approximation uses 2025 parameters → result is in today's CZK, so
+  // nominal == monthly. The detailed engine produces the divergence.
   return {
-    monthly: basicComponent + percentageComponent,
+    monthly,
     basicComponent,
     percentageComponent,
     reducedBase,
+    monthlyNominal: monthly,
+    basicComponentNominal: basicComponent,
+    percentageComponentNominal: percentageComponent,
+    rokPriznani: rokPriznaniDefault,
   };
 }
 

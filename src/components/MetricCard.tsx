@@ -8,6 +8,8 @@ interface MetricCardProps {
   value: string;
   unit?: string;
   description: string;
+  /** Optional second-line value (e.g. nominal-in-future-CZK) shown small under the big number. */
+  subValue?: string;
   tone?: "default" | "accent" | "secondary";
   footer?: ReactNode;
 }
@@ -19,6 +21,7 @@ export function MetricCard({
   value,
   unit,
   description,
+  subValue,
   tone = "default",
   footer,
 }: MetricCardProps) {
@@ -45,7 +48,7 @@ export function MetricCard({
         </span>
       </div>
 
-      <div className="flex items-baseline gap-2 mb-3">
+      <div className="flex items-baseline gap-2 mb-1">
         <span className={`display num text-5xl md:text-6xl font-medium leading-none ${valueColor}`}>
           {value}
         </span>
@@ -54,7 +57,11 @@ export function MetricCard({
         )}
       </div>
 
-      <p className="text-sm text-ink/70 leading-relaxed max-w-[36ch]">
+      {subValue && (
+        <p className="num text-[11px] text-muted mb-3 mt-1">{subValue}</p>
+      )}
+
+      <p className="text-sm text-ink/70 leading-relaxed max-w-[36ch] mt-3">
         {description}
       </p>
 

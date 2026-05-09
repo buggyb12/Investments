@@ -334,6 +334,27 @@ export function InputForm({
                 }
               />
             </Field>
+
+            <Field
+              label="Inflace pro deflátor (p.a.)"
+              trailing={
+                <span className="num text-xs text-muted">
+                  {formatPercent(inputs.inflation, 1)}
+                </span>
+              }
+              hint="Pro převod nominálních budoucích korun na dnešní kupní sílu. ČNB cíl je 2 % p.a., konzervativně počítejme 3 %."
+            >
+              <input
+                type="range"
+                min={1}
+                max={5}
+                step={0.5}
+                value={Math.round(inputs.inflation * 100 * 10) / 10}
+                onChange={(e) =>
+                  onChange({ inflation: Number(e.target.value) / 100 })
+                }
+              />
+            </Field>
           </div>
         )}
       </section>
