@@ -7,20 +7,19 @@
  */
 
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
-// Legacy build uses ES5 transpiled output and ships polyfills, which
-// avoids `for-of over undefined` style crashes inside pdfjs's own
-// getTextContent on certain PDFs. The matching legacy worker is
-// emitted by Vite as a self-contained bundle via ?worker.
-import PdfWorker from "pdfjs-dist/legacy/build/pdf.worker.mjs?worker";
 
 let workerInstalled = false;
 function ensureWorker() {
   if (workerInstalled) return;
   const opts = (pdfjsLib as unknown as {
-    GlobalWorkerOptions?: { workerPort?: Worker; workerSrc?: string };
+    GlobalWorkerOptions?: { workerSrc?: string };
   }).GlobalWorkerOptions;
   if (opts) {
-    opts.workerPort = new PdfWorker();
+    // Serve the legacy worker as a static file from public/ so Vite's
+    // ?worker transform doesn't touch it. The exact same .min.mjs that
+    // ships in pdfjs-dist/legacy/build is copied to /public/pdfjs/
+    // verbatim, which is what pdfjs expects to load.
+    opts.workerSrc = "/pdfjs/pdf.worker.min.mjs";
   }
   workerInstalled = true;
 }
