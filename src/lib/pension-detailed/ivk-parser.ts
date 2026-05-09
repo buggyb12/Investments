@@ -96,7 +96,15 @@ async function extractLines(buffer: ArrayBuffer): Promise<string[]> {
 
   // pdfjs v5 expects a typed array, not a raw ArrayBuffer.
   const data = new Uint8Array(buffer);
-  const loadingTask = pdfjsLib.getDocument({ data });
+  // standardFontDataUrl + cMapUrl are required by some PDFs; without them
+  // pdfjs internally hits a code path that throws "for-of over undefined".
+  // Both directories are copied from pdfjs-dist into public/pdfjs at build.
+  const loadingTask = pdfjsLib.getDocument({
+    data,
+    standardFontDataUrl: "/pdfjs/standard_fonts/",
+    cMapUrl: "/pdfjs/cmaps/",
+    cMapPacked: true,
+  });
   let doc;
   try {
     doc = await loadingTask.promise;
