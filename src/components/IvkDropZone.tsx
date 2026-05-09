@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import { FileText, Upload, X } from "lucide-react";
-import { aggregateIvk, parseIvkFromBytes } from "../lib/pension-detailed/ivk-parser";
+import { parseIvkOnServer } from "../lib/pension-detailed/ivk-parser";
 
 interface IvkDropZoneProps {
   onYearsParsed: (rows: Array<{ rok: number; vz: number; vylouceneDny: number }>) => void;
@@ -23,24 +23,19 @@ export function IvkDropZone({ onYearsParsed }: IvkDropZoneProps) {
       setError(null);
       try {
         const buffer = await file.arrayBuffer();
-        const ivk = await parseIvkFromBytes(buffer);
-        const { vzPerYear, excludedDaysPerYear } = aggregateIvk(ivk);
-        const years = Object.keys(vzPerYear).map(Number).sort((a, b) => a - b);
-        if (years.length === 0) {
-          setError("Z PDF se nepodařilo vyčíst žádné roky. Vlož data ručně, nebo zkus jiný IVK PDF.");
+        const result = await parseIvkOnServer(buffer);
+        if (result.rows.length === 0) {
+          setError(
+            "Z PDF se nepodařilo vyčíst žádné roky. Vlož data ručně, nebo zkus jiný IVK PDF.",
+          );
           setState("error");
           return;
         }
-        const rows = years.map((rok) => ({
-          rok,
-          vz: vzPerYear[rok] ?? 0,
-          vylouceneDny: excludedDaysPerYear[rok] ?? 0,
-        }));
-        onYearsParsed(rows);
+        onYearsParsed(result.rows);
         setMeta({
-          jmeno: ivk.pojistenecJmeno,
-          rc: ivk.pojistenecRc,
-          rows: rows.length,
+          jmeno: result.jmeno,
+          rc: result.rc,
+          rows: result.rows.length,
         });
         setState("ok");
       } catch (err) {
