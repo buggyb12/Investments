@@ -2,12 +2,25 @@ import { useMemo, useState } from "react";
 import { ChevronDown, RotateCcw, Wand2 } from "lucide-react";
 import { formatCZK } from "../lib/format";
 import type { Varianta } from "../lib/pension-detailed";
-import {
-  effectiveGrossMonthly,
-  type DetailedInputs,
-  type DetailedYearRow,
+import type {
+  DetailedInputs,
+  DetailedYearRow,
 } from "../state/useClientInputs";
 import { Field } from "./Field";
+
+/**
+ * Inlined helper (not imported) — keeping this component on a pure-type
+ * import from useClientInputs avoids dragging the hook (and its detailed
+ * pension engine + adapter graph) into the main runtime chunk, which was
+ * disrupting the pdfjs lazy chunk loading for IvkDropZone.
+ */
+function deriveGrossFromYears(rows: DetailedYearRow[]): number {
+  if (!Array.isArray(rows)) return 0;
+  const filled = rows.filter((r) => r && r.vz > 0);
+  if (filled.length === 0) return 0;
+  filled.sort((a, b) => b.rok - a.rok);
+  return Math.round(filled[0].vz / 12);
+}
 
 interface DetailedYearsTableProps {
   detailed: DetailedInputs;
@@ -40,7 +53,7 @@ export function DetailedYearsTable({
   );
   const filledYears = detailed.rocniData.filter((r) => r.vz > 0).length;
   const derivedGross = useMemo(
-    () => effectiveGrossMonthly(detailed.rocniData),
+    () => deriveGrossFromYears(detailed.rocniData),
     [detailed.rocniData],
   );
 
