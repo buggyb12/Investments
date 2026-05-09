@@ -7,11 +7,24 @@
  */
 
 import * as pdfjsLib from "pdfjs-dist";
-// Vite handles ?url import to give us a runtime URL for the worker.
-import workerUrl from "pdfjs-dist/build/pdf.worker.mjs?url";
+// `?worker` makes Vite emit a proper Web Worker bundle for pdfjs and
+// returns a constructor we can hand to GlobalWorkerOptions.workerPort.
+// This is more reliable than the `?url` + workerSrc dance, which
+// depends on the runtime serving the .mjs file with the right MIME
+// and on pdfjs's own dynamic import path.
+import PdfWorker from "pdfjs-dist/build/pdf.worker.mjs?worker";
 
-(pdfjsLib as unknown as { GlobalWorkerOptions: { workerSrc: string } })
-  .GlobalWorkerOptions.workerSrc = workerUrl;
+let workerInstalled = false;
+function ensureWorker() {
+  if (workerInstalled) return;
+  const opts = (pdfjsLib as unknown as {
+    GlobalWorkerOptions?: { workerPort?: Worker; workerSrc?: string };
+  }).GlobalWorkerOptions;
+  if (opts) {
+    opts.workerPort = new PdfWorker();
+  }
+  workerInstalled = true;
+}
 
 export interface IvkPeriodOfInsurance {
   od: string; // ISO yyyy-mm-dd
@@ -65,21 +78,53 @@ function parseDate(s: string): string {
   return `${y}-${m}-${d}`;
 }
 
+interface TextItemLike {
+  str?: string;
+  transform?: number[];
+}
+
+function isTextItem(it: unknown): it is { str: string; transform: number[] } {
+  if (!it || typeof it !== "object") return false;
+  const o = it as TextItemLike;
+  return (
+    typeof o.str === "string" && Array.isArray(o.transform) && o.transform.length >= 6
+  );
+}
+
 /** Extract all text from a PDF as a flat list of lines. */
 async function extractLines(buffer: ArrayBuffer): Promise<string[]> {
-  const doc = await pdfjsLib.getDocument({ data: buffer }).promise;
+  ensureWorker();
+
+  // pdfjs v5 expects a typed array, not a raw ArrayBuffer.
+  const data = new Uint8Array(buffer);
+  const loadingTask = pdfjsLib.getDocument({ data });
+  let doc;
+  try {
+    doc = await loadingTask.promise;
+  } catch (e) {
+    throw new Error(
+      `pdfjs nepřečetl PDF: ${e instanceof Error ? e.message : String(e)}`,
+    );
+  }
+  if (!doc || typeof doc.numPages !== "number") {
+    throw new Error("PDF se otevřel, ale chybí stránky");
+  }
+
   const lines: string[] = [];
   for (let p = 1; p <= doc.numPages; p++) {
     const page = await doc.getPage(p);
     const content = await page.getTextContent();
+    const rawItems =
+      (content && (content as { items?: unknown }).items) || [];
+    if (!Array.isArray(rawItems)) continue;
 
-    // pdfjs returns text items per glyph run; we need to reassemble lines
-    // by Y coordinate (baseline). Group items with similar transform[5].
-    const items = (content.items as Array<{ str: string; transform: number[] }>).slice();
-    const byLine = new Map<number, { y: number; parts: { x: number; str: string }[] }>();
-    for (const it of items) {
-      if (!it.str) continue;
-      const y = Math.round(it.transform[5] * 10) / 10;
+    const byLine = new Map<
+      number,
+      { y: number; parts: { x: number; str: string }[] }
+    >();
+    for (const it of rawItems) {
+      if (!isTextItem(it)) continue;
+      const y = it.transform[5];
       const x = it.transform[4];
       const key = Math.round(y);
       const entry = byLine.get(key) ?? { y, parts: [] };
@@ -89,7 +134,11 @@ async function extractLines(buffer: ArrayBuffer): Promise<string[]> {
     const sortedLines = Array.from(byLine.values()).sort((a, b) => b.y - a.y);
     for (const ln of sortedLines) {
       ln.parts.sort((a, b) => a.x - b.x);
-      const lineText = ln.parts.map((p) => p.str).join(" ").replace(/\s+/g, " ").trim();
+      const lineText = ln.parts
+        .map((p) => p.str)
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .trim();
       if (lineText) lines.push(lineText);
     }
   }
@@ -179,16 +228,18 @@ export function aggregateIvk(ivk: Ivk): IvkAggregates {
   const daysPerYear: Record<number, number> = {};
   const excludedDaysPerYear: Record<number, number> = {};
 
-  for (const p of ivk.dobyPojisteni) {
+  const dobyPojisteni = Array.isArray(ivk?.dobyPojisteni) ? ivk.dobyPojisteni : [];
+  for (const p of dobyPojisteni) {
+    if (!p || typeof p.od !== "string" || typeof p.do !== "string") continue;
     const odYear = Number(p.od.slice(0, 4));
     const doYear = Number(p.do.slice(0, 4));
-    if (odYear !== doYear) continue; // multi-year periods skipped
+    if (!odYear || odYear !== doYear) continue;
 
-    vzPerYear[odYear] = (vzPerYear[odYear] ?? 0) + p.vymerovaciZaklad;
+    vzPerYear[odYear] = (vzPerYear[odYear] ?? 0) + (p.vymerovaciZaklad || 0);
     excludedDaysPerYear[odYear] =
-      (excludedDaysPerYear[odYear] ?? 0) + p.vylouceneDoby;
+      (excludedDaysPerYear[odYear] ?? 0) + (p.vylouceneDoby || 0);
     if (p.druh !== "vyměřovací základ") {
-      daysPerYear[odYear] = (daysPerYear[odYear] ?? 0) + p.pocetDni;
+      daysPerYear[odYear] = (daysPerYear[odYear] ?? 0) + (p.pocetDni || 0);
     }
   }
 

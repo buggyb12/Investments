@@ -45,7 +45,10 @@ export function IvkDropZone({ onYearsParsed }: IvkDropZoneProps) {
         setState("ok");
       } catch (err) {
         console.error("[IVK] parse failed:", err);
-        setError(err instanceof Error ? err.message : String(err));
+        const stack = err instanceof Error && err.stack ? `\n${err.stack.split("\n").slice(0, 3).join("\n")}` : "";
+        setError(
+          (err instanceof Error ? err.message : String(err)) + stack,
+        );
         setState("error");
       }
     },
@@ -129,7 +132,9 @@ export function IvkDropZone({ onYearsParsed }: IvkDropZoneProps) {
       )}
 
       {state === "error" && error && (
-        <p className="mt-3 text-xs text-accent">{error}</p>
+        <pre className="mt-3 text-xs text-accent whitespace-pre-wrap font-mono leading-relaxed">
+          {error}
+        </pre>
       )}
     </div>
   );
