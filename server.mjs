@@ -48,8 +48,13 @@ async function tryRead(path) {
 
 // — IVK parser (server-side) ———————————————————————————————————————
 
-const ROW_RE =
-  /^(\d{2}\.\d{2}\.\d{4})\s+(\d{2}\.\d{2}\.\d{4})\s+(vyměřovací základ|pojištění|náhradní doba(?:\s+pojištění)?)\s+(\d+)\s+((?:\d{1,3}(?:\s\d{3})*|\d+))\s+(\d+)\s*$/;
+// Páry dat dd.mm.yyyy oddělené jen mezerou — nesmí mezi tím být žádný text
+// (vyloučí to "Doba od 01.01.2012 Doba do 28.02.2013" v sekci neevidovaných).
+const DATE_PAIR_RE = /(\d{2}\.\d{2}\.\d{4})\s+(\d{2}\.\d{2}\.\d{4})/g;
+// Počet dní — 1–3 ciferné číslo na hranici slova, bez tisícového oddělovače.
+const DAYS_RE = /\b(\d{1,3})\b/;
+// Číslo s případným oddělovačem tisíců (mezera): "30 169", "1 234 567" nebo "365".
+const NUM_RE = /\d{1,3}(?:\s\d{3})+|\d+/g;
 const NAME_RE = /Identifikační údaje pojištěnce:\s+(.+)/;
 const RC_RE = /^\s*(\d{9,10})\s*$/;
 
@@ -149,16 +154,52 @@ function parseIvkLines(lines) {
       continue;
     }
     if (inUnreg) continue;
-    const m = ROW_RE.exec(line);
-    if (!m) continue;
-    dobyPojisteni.push({
-      od: parseDate(m[1]),
-      do: parseDate(m[2]),
-      druh: m[3].trim(),
-      pocetDni: parseIntStripped(m[4]),
-      vymerovaciZaklad: parseIntStripped(m[5]),
-      vylouceneDoby: parseIntStripped(m[6]),
-    });
+
+    // Najdi všechny páry "od do" v řádku (pdfjs občas slepí dva roky do jednoho).
+    const pairs = [];
+    DATE_PAIR_RE.lastIndex = 0;
+    let dm;
+    while ((dm = DATE_PAIR_RE.exec(line)) !== null) {
+      pairs.push({ od: dm[1], do: dm[2], start: dm.index, end: dm.index + dm[0].length });
+    }
+    if (pairs.length === 0) continue;
+
+    for (let i = 0; i < pairs.length; i++) {
+      const segStart = pairs[i].end;
+      const segEnd = i + 1 < pairs.length ? pairs[i + 1].start : line.length;
+      const seg = line.slice(segStart, segEnd);
+
+      // Počet dní extrahuj zvlášť (1–3 ciferné, bez tisícového oddělovače),
+      // jinak by greedy NUM_RE spojil "366 136 072" do jednoho čísla.
+      const dm2 = DAYS_RE.exec(seg);
+      if (!dm2) continue;
+      const pocetDni = Number(dm2[1]);
+      if (pocetDni < 1 || pocetDni > 366) continue;
+
+      const rest = seg.slice(dm2.index + dm2[0].length);
+      const nums = [];
+      NUM_RE.lastIndex = 0;
+      let nm;
+      while ((nm = NUM_RE.exec(rest)) !== null) {
+        nums.push(parseIntStripped(nm[0]));
+      }
+
+      // VZ a vyloučené doby jsou volitelné (u OSVČ bývají prázdné).
+      const vymerovaciZaklad = nums.length >= 2 ? nums[0] : 0;
+      const vylouceneDoby =
+        nums.length >= 2 ? nums[1] : nums.length === 1 ? nums[0] : 0;
+
+      const druh = seg.slice(0, dm2.index).replace(/\s+/g, " ").trim();
+
+      dobyPojisteni.push({
+        od: parseDate(pairs[i].od),
+        do: parseDate(pairs[i].do),
+        druh: druh || "neznámý",
+        pocetDni,
+        vymerovaciZaklad,
+        vylouceneDoby,
+      });
+    }
   }
 
   const vzPerYear = {};
