@@ -262,15 +262,25 @@ export function InputForm({
 
         <Field
           label="Cílový příjem (Kč / měs)"
+          htmlFor="targetMonthly"
+          trailing={
+            <span className="num text-xs text-muted">
+              {effectiveGrossMonthly > 0 ? formatCZK(targetMonthly) : "—"}
+            </span>
+          }
           hint="Můžeš upravit přímo částku — slider % se přepočítá."
         >
           <input
+            id="targetMonthly"
             type="number"
             inputMode="numeric"
             min={0}
             step={500}
+            className="input-base num"
             disabled={effectiveGrossMonthly === 0}
             value={effectiveGrossMonthly > 0 ? targetMonthly : ""}
+            placeholder="0"
+            onWheel={(e) => e.currentTarget.blur()}
             onChange={(e) => {
               const czk = Math.max(0, Number(e.target.value) || 0);
               if (effectiveGrossMonthly > 0) {
