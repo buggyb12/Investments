@@ -7,7 +7,7 @@ import { PortfolioStep } from "./components/PortfolioStep";
 import { DownloadReportButton } from "./components/DownloadReportButton";
 
 export function App() {
-  const { inputs, result, set, setDetailed, setYear, fillAllYears } =
+  const { inputs, result, effectiveGross, set, setDetailed, setYear, fillAllYears } =
     useClientInputs();
   const portfolio = usePortfolio(result.yearsToRetirement);
 
@@ -74,6 +74,7 @@ export function App() {
           <section className="col-span-12 lg:col-span-5">
             <InputForm
               inputs={inputs}
+              effectiveGrossMonthly={effectiveGross}
               onChange={set}
               setDetailed={setDetailed}
               setYear={setYear}

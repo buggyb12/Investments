@@ -147,7 +147,10 @@ export function detailedYearsInsured(rocniData: DetailedYearRow[]): number {
 export function useClientInputs() {
   const [inputs, dispatch] = useReducer(reducer, DEFAULT_INPUTS);
 
-  const result: ScenarioResult = useMemo(() => {
+  const { result, effectiveGross } = useMemo<{
+    result: ScenarioResult;
+    effectiveGross: number;
+  }>(() => {
     const birth = new Date(inputs.birthDate);
     const safeBirth = Number.isNaN(birth.getTime()) ? new Date(defaultBirth) : birth;
 
@@ -197,7 +200,7 @@ export function useClientInputs() {
       }
     }
 
-    return computeScenario({
+    const result = computeScenario({
       birthDate: safeBirth,
       gender: inputs.gender,
       incomeType: inputs.incomeType,
@@ -211,11 +214,13 @@ export function useClientInputs() {
       currentSavings: inputs.currentSavings,
       statePensionOverride,
     });
+    return { result, effectiveGross };
   }, [inputs]);
 
   return {
     inputs,
     result,
+    effectiveGross,
     set: (patch: Partial<ClientInputs>) => dispatch({ type: "set", patch }),
     setDetailed: (patch: Partial<DetailedInputs>) =>
       dispatch({ type: "setDetailed", patch }),
