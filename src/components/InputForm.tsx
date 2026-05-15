@@ -18,6 +18,8 @@ const IvkDropZone = lazy(() =>
 
 interface InputFormProps {
   inputs: ClientInputs;
+  /** Vypočtený měsíční hrubý příjem (z IVK v detailed módu, jinak ze sekce 02). */
+  effectiveGrossMonthly: number;
   onChange: (patch: Partial<ClientInputs>) => void;
   setDetailed: (patch: Partial<DetailedInputs>) => void;
   setYear: (rok: number, patch: Partial<DetailedYearRow>) => void;
@@ -40,11 +42,15 @@ const INCOME_TYPES: { value: IncomeType; label: string; hint: string }[] = [
 
 export function InputForm({
   inputs,
+  effectiveGrossMonthly,
   onChange,
   setDetailed,
   setYear,
   fillAllYears,
 }: InputFormProps) {
+  const targetMonthly = Math.round(
+    effectiveGrossMonthly * inputs.replacementRate,
+  );
   const [showAdvanced, setShowAdvanced] = useState(false);
   const incomeHint = INCOME_TYPES.find((t) => t.value === inputs.incomeType)?.hint;
 
@@ -212,6 +218,27 @@ export function InputForm({
       <section className="space-y-6">
         <SectionHeader index="03" title="Cíl v důchodu" />
 
+        {effectiveGrossMonthly > 0 ? (
+          <div className="text-xs text-muted space-y-0.5">
+            <p>
+              Vypočtený měsíční příjem (z IVK / zadání):{" "}
+              <span className="num text-ink">
+                {formatCZK(effectiveGrossMonthly)}
+              </span>
+            </p>
+            <p>
+              Cílový příjem v důchodu:{" "}
+              <span className="num text-ink">{formatCZK(targetMonthly)}</span>{" "}
+              ({formatPercent(inputs.replacementRate)})
+            </p>
+          </div>
+        ) : (
+          <p className="text-xs text-muted">
+            Pro výpočet cílové částky doplň příjem v sekci 02 (nebo nahraj
+            IVK PDF).
+          </p>
+        )}
+
         <Field
           label="Cílový příjem (% současného)"
           trailing={
@@ -219,17 +246,37 @@ export function InputForm({
               {formatPercent(inputs.replacementRate)}
             </span>
           }
-          hint="Kolik procent dnešního příjmu chce klient mít v důchodu (typicky 60–80 %)."
+          hint="Kolik procent dnešního příjmu chce klient mít v důchodu (typicky 60–80 %). Posuvník lze přesáhnout zadáním částky v poli níž."
         >
           <input
             type="range"
             min={50}
-            max={90}
+            max={150}
             step={5}
-            value={Math.round(inputs.replacementRate * 100)}
+            value={Math.min(150, Math.round(inputs.replacementRate * 100))}
             onChange={(e) =>
               onChange({ replacementRate: Number(e.target.value) / 100 })
             }
+          />
+        </Field>
+
+        <Field
+          label="Cílový příjem (Kč / měs)"
+          hint="Můžeš upravit přímo částku — slider % se přepočítá."
+        >
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            step={500}
+            disabled={effectiveGrossMonthly === 0}
+            value={effectiveGrossMonthly > 0 ? targetMonthly : ""}
+            onChange={(e) => {
+              const czk = Math.max(0, Number(e.target.value) || 0);
+              if (effectiveGrossMonthly > 0) {
+                onChange({ replacementRate: czk / effectiveGrossMonthly });
+              }
+            }}
           />
         </Field>
 
