@@ -24,3 +24,10 @@ export {
 } from "./calculator";
 
 export { toStatePensionResult } from "./adapter";
+
+export {
+  sazbaProStupen,
+  vypocetInvalidni,
+  type InvalidniVysledek,
+  type StupenInvalidity,
+} from "./disability";

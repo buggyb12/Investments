@@ -7,6 +7,7 @@ import type {
   ClientInputs,
   DetailedInputs,
   DetailedYearRow,
+  PensionInsights,
 } from "../state/useClientInputs";
 import type { IncomeType } from "../lib/pension";
 import { CalculationModeToggle } from "./CalculationModeToggle";
@@ -20,6 +21,7 @@ interface InputFormProps {
   inputs: ClientInputs;
   /** Vypočtený měsíční hrubý příjem (z IVK v detailed módu, jinak ze sekce 02). */
   effectiveGrossMonthly: number;
+  insights?: PensionInsights;
   onChange: (patch: Partial<ClientInputs>) => void;
   setDetailed: (patch: Partial<DetailedInputs>) => void;
   setYear: (rok: number, patch: Partial<DetailedYearRow>) => void;
@@ -43,6 +45,7 @@ const INCOME_TYPES: { value: IncomeType; label: string; hint: string }[] = [
 export function InputForm({
   inputs,
   effectiveGrossMonthly,
+  insights,
   onChange,
   setDetailed,
   setYear,
@@ -53,6 +56,14 @@ export function InputForm({
   );
   const [showAdvanced, setShowAdvanced] = useState(false);
   const incomeHint = INCOME_TYPES.find((t) => t.value === inputs.incomeType)?.hint;
+
+  // Bod 4 — hint se zákonným důchodovým věkem u pole plánovaného věku odchodu.
+  const zv = insights?.zakonnyVek;
+  const retirementAgeHint = zv
+    ? `Zákonný nárok na řádný starobní důchod: ${zv.roky}${
+        zv.mesice ? ` r ${zv.mesice} měs` : " let"
+      }.`
+    : undefined;
 
   return (
     <form
@@ -108,6 +119,7 @@ export function InputForm({
         <Field
           label="Plánovaný věk odchodu"
           htmlFor="retirementAge"
+          hint={retirementAgeHint}
           trailing={
             <span className="num text-xs text-muted">
               {inputs.plannedRetirementAge} let
