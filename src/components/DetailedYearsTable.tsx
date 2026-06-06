@@ -52,6 +52,9 @@ export function DetailedYearsTable({
     [detailed.rocniData],
   );
   const filledYears = detailed.rocniData.filter((r) => r.vz > 0).length;
+  const chybejiciCount = detailed.rocniData.filter(
+    (r) => r.chybi && r.vz === 0,
+  ).length;
   const derivedGross = useMemo(
     () => deriveGrossFromYears(detailed.rocniData),
     [detailed.rocniData],
@@ -191,10 +194,13 @@ export function DetailedYearsTable({
 
       {/* Year table */}
       <div className="border border-line">
-        <div className="grid grid-cols-[64px_1fr_120px] gap-2 px-3 py-2 bg-ink/5 border-b border-line text-[10px] uppercase tracking-[0.18em] text-muted">
+        <div className="grid grid-cols-[56px_1fr_96px_64px] gap-2 px-3 py-2 bg-ink/5 border-b border-line text-[10px] uppercase tracking-[0.18em] text-muted">
           <span>Rok</span>
           <span>VZ Kč/rok</span>
-          <span>Vyloučené dny</span>
+          <span>Vyl. dny</span>
+          <span className="text-center" title="Chybějící doba pojištění">
+            Chybí
+          </span>
         </div>
         <div className="max-h-[360px] overflow-y-auto">
           {visibleRows.map((row) => (
@@ -217,6 +223,36 @@ export function DetailedYearsTable({
           Zobrazit roky 1986–2009
         </button>
       )}
+
+      {/* Doplnění chybějících dob — bod 3 */}
+      <div className="border border-line bg-ink/[0.02] px-4 py-3 space-y-2">
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            className="mt-0.5"
+            checked={detailed.doplnitChybejici}
+            onChange={(e) =>
+              setDetailed({ doplnitChybejici: e.target.checked })
+            }
+          />
+          <span className="text-sm text-ink/80 leading-relaxed">
+            <span className="font-medium text-ink">
+              Modelovat doplnění chybějících dob
+            </span>
+            <br />
+            Roky zaškrtnuté ve sloupci „Chybí" (studium, mateřská, zahraničí…)
+            se doplní průměrným VZ známých let. Ve výsledcích se ukáže důchod
+            podle dostupných dat, po doplnění a rozdíl.
+            {chybejiciCount > 0 && (
+              <>
+                {" "}
+                Označeno{" "}
+                <span className="num text-ink">{chybejiciCount}</span> let.
+              </>
+            )}
+          </span>
+        </label>
+      </div>
     </div>
   );
 }
@@ -227,8 +263,9 @@ interface YearRowProps {
 }
 
 function YearRow({ row, onChange }: YearRowProps) {
+  const hasVz = row.vz > 0;
   return (
-    <div className="grid grid-cols-[64px_1fr_120px] gap-2 px-3 py-1.5 border-b border-line/40 hover:bg-ink/[0.02]">
+    <div className="grid grid-cols-[56px_1fr_96px_64px] gap-2 px-3 py-1.5 border-b border-line/40 hover:bg-ink/[0.02]">
       <span className="num text-sm text-muted self-center">{row.rok}</span>
       <input
         type="number"
@@ -254,6 +291,19 @@ function YearRow({ row, onChange }: YearRowProps) {
           })
         }
       />
+      <div className="flex items-center justify-center">
+        <input
+          type="checkbox"
+          checked={!hasVz && !!row.chybi}
+          disabled={hasVz}
+          title={
+            hasVz
+              ? "Rok má vyplněný VZ — není chybějící"
+              : "Označit jako chybějící dobu pojištění"
+          }
+          onChange={(e) => onChange({ chybi: e.target.checked })}
+        />
+      </div>
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { AlertCircle, ChevronDown, Info } from "lucide-react";
 import { motion } from "motion/react";
 import type { ScenarioResult } from "../lib/pension";
-import type { ClientInputs } from "../state/useClientInputs";
+import type { ClientInputs, PensionInsights } from "../state/useClientInputs";
 import type { usePortfolio } from "../state/usePortfolio";
 import { formatCZK, formatPercent, formatYears } from "../lib/format";
 import { MetricCard } from "./MetricCard";
@@ -13,10 +13,22 @@ import { DownloadReportButton } from "./DownloadReportButton";
 interface ResultsPanelProps {
   result: ScenarioResult;
   inputs: ClientInputs;
+  insights?: PensionInsights;
   portfolio: ReturnType<typeof usePortfolio>;
 }
 
-export function ResultsPanel({ result, inputs, portfolio }: ResultsPanelProps) {
+/** Formátuje důchodový věk z {roky, měsíce} na čitelný text. */
+function formatVek(roky: number, mesice: number): string {
+  if (mesice === 0) return formatYears(roky);
+  return `${formatYears(roky)} ${mesice} měs`;
+}
+
+export function ResultsPanel({
+  result,
+  inputs,
+  insights,
+  portfolio,
+}: ResultsPanelProps) {
   const noWorkYears =
     inputs.mode === "approximation" && inputs.yearsInsured <= 0;
   const tooLate = result.yearsToRetirement <= 0;
@@ -26,9 +38,20 @@ export function ResultsPanel({ result, inputs, portfolio }: ResultsPanelProps) {
   const showsNominalDivergence =
     sp.rokPriznani > new Date().getFullYear() &&
     Math.abs(sp.monthlyNominal - sp.monthly) > 1;
+  const nominalDiff = sp.monthlyNominal - sp.monthly;
   const realitaSubValue = showsNominalDivergence
     ? `nominálně v r. ${sp.rokPriznani}: ${formatCZK(sp.monthlyNominal)} / měs`
     : undefined;
+
+  // Bod 4 — porovnání zvoleného věku odchodu se zákonným důchodovým věkem.
+  const zakonnyVek = insights?.zakonnyVek;
+  const zakonnyVekDecimal = zakonnyVek
+    ? zakonnyVek.roky + zakonnyVek.mesice / 12
+    : null;
+  const vekRozdil =
+    zakonnyVekDecimal !== null
+      ? inputs.plannedRetirementAge - zakonnyVekDecimal
+      : null;
 
   return (
     <div className="space-y-12">
@@ -57,6 +80,48 @@ export function ResultsPanel({ result, inputs, portfolio }: ResultsPanelProps) {
           </p>
         </div>
       </div>
+
+      {/* Bod 4 — zvolený věk odchodu vs. zákonný důchodový věk */}
+      {zakonnyVek && (
+        <div className="grid grid-cols-3 gap-px bg-line border border-line text-center">
+          <div className="bg-paper px-3 py-3">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-muted mb-1">
+              Plán klienta
+            </p>
+            <p className="display num text-xl text-ink">
+              {formatYears(inputs.plannedRetirementAge)}
+            </p>
+            <p className="text-[10px] text-muted mt-0.5">věk odchodu</p>
+          </div>
+          <div className="bg-paper px-3 py-3">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-muted mb-1">
+              Zákonný nárok
+            </p>
+            <p className="display num text-xl text-ink">
+              {formatVek(zakonnyVek.roky, zakonnyVek.mesice)}
+            </p>
+            <p className="text-[10px] text-muted mt-0.5">řádný starobní důchod</p>
+          </div>
+          <div className="bg-paper px-3 py-3">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-muted mb-1">
+              Rozdíl
+            </p>
+            <p className="display num text-xl text-accent">
+              {vekRozdil !== null && Math.abs(vekRozdil) < 0.04
+                ? "0"
+                : `${vekRozdil !== null && vekRozdil > 0 ? "+" : ""}${vekRozdil?.toFixed(1)}`}{" "}
+              <span className="text-sm text-muted">let</span>
+            </p>
+            <p className="text-[10px] text-muted mt-0.5">
+              {vekRozdil !== null && vekRozdil < -0.04
+                ? "odchod dříve než nárok"
+                : vekRozdil !== null && vekRozdil > 0.04
+                  ? "odchod později než nárok"
+                  : "shodný s nárokem"}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Warnings */}
       {(noWorkYears || tooLate) && (
@@ -101,8 +166,30 @@ export function ResultsPanel({ result, inputs, portfolio }: ResultsPanelProps) {
           title="Realita"
           value={formatCZK(result.statePension.monthly)}
           unit="/ měs"
-          subValue={realitaSubValue}
+          subValue={showsNominalDivergence ? undefined : realitaSubValue}
           description="Orientační odhad státního starobního důchodu v dnešní kupní síle."
+          footer={
+            showsNominalDivergence ? (
+              <div className="num text-[11px] border-t border-line/50 pt-2 space-y-1">
+                <div className="flex justify-between gap-3">
+                  <span className="text-muted">Dnešní kupní síla</span>
+                  <span className="text-ink font-medium">
+                    {formatCZK(sp.monthly)}
+                  </span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span className="text-muted">
+                    Nominálně (r. {sp.rokPriznani})
+                  </span>
+                  <span className="text-ink">{formatCZK(sp.monthlyNominal)}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span className="text-muted">Rozdíl vlivem inflace</span>
+                  <span className="text-accent">−{formatCZK(nominalDiff)}</span>
+                </div>
+              </div>
+            ) : undefined
+          }
         />
         <MetricCard
           index={1}
@@ -201,6 +288,105 @@ export function ResultsPanel({ result, inputs, portfolio }: ResultsPanelProps) {
             </div>
           )}
         </div>
+      )}
+
+      {/* Bod 3 — doplnění chybějících dob pojištění */}
+      {insights?.doplneniDob && (
+        <section className="space-y-4">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.22em] text-muted mb-1">
+              Doplnění chybějících dob pojištění
+            </p>
+            <p className="text-xs text-muted leading-relaxed max-w-xl">
+              Modelace, kdy se{" "}
+              <span className="num text-ink">
+                {insights.doplneniDob.pocetDoplnenych}
+              </span>{" "}
+              chybějících let (studium, mateřská, zahraničí…) doplní průměrným
+              vyměřovacím základem známých let (
+              {formatCZK(insights.doplneniDob.prumernyVz)} / rok).
+            </p>
+          </div>
+          <div className="grid grid-cols-3 gap-px bg-line border border-line text-center">
+            <div className="bg-paper px-3 py-4">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted mb-1">
+                Dle dostupných dat
+              </p>
+              <p className="display num text-xl text-ink">
+                {formatCZK(insights.doplneniDob.aktualni.monthly)}
+              </p>
+              <p className="text-[10px] text-muted mt-0.5">/ měs</p>
+            </div>
+            <div className="bg-paper px-3 py-4">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted mb-1">
+                Po doplnění dob
+              </p>
+              <p className="display num text-xl text-ink">
+                {formatCZK(insights.doplneniDob.poDoplneni.monthly)}
+              </p>
+              <p className="text-[10px] text-muted mt-0.5">/ měs</p>
+            </div>
+            <div className="bg-paper px-3 py-4">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted mb-1">
+                Rozdíl
+              </p>
+              <p className="display num text-xl text-accent">
+                +{formatCZK(insights.doplneniDob.rozdil)}
+              </p>
+              <p className="text-[10px] text-muted mt-0.5">/ měs</p>
+            </div>
+          </div>
+          <p className="text-[10px] text-muted leading-relaxed">
+            Hodnoty v dnešní kupní síle. Doplněné roky se započítávají jako
+            odpracovaná doba pojištění. Orientační — skutečné doplnění dob
+            posuzuje ČSSZ.
+          </p>
+        </section>
+      )}
+
+      {/* Bod 5 — orientační invalidní důchod */}
+      {insights?.invalidni && (
+        <section className="space-y-4">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.22em] text-muted mb-1">
+              Invalidní důchod — orientačně
+            </p>
+            <p className="text-xs text-muted leading-relaxed max-w-xl">
+              Odhad ze stejných vstupních dat jako starobní důchod (výpočtový
+              základ + dopočtená doba do důchodového věku). Slouží jako výchozí
+              bod pro návrh pojištění výpadku příjmu.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-px bg-line border border-line text-center">
+            <div className="bg-paper px-3 py-4">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted mb-1">
+                II. stupeň
+              </p>
+              <p className="display num text-2xl text-ink">
+                {formatCZK(insights.invalidni.st2.duchodCelkem)}
+              </p>
+              <p className="text-[10px] text-muted mt-0.5">
+                / měs · sazba {insights.invalidni.st2.sazbaPct} %/rok
+              </p>
+            </div>
+            <div className="bg-paper px-3 py-4">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted mb-1">
+                III. stupeň
+              </p>
+              <p className="display num text-2xl text-ink">
+                {formatCZK(insights.invalidni.st3.duchodCelkem)}
+              </p>
+              <p className="text-[10px] text-muted mt-0.5">
+                / měs · sazba {insights.invalidni.st3.sazbaPct} %/rok
+              </p>
+            </div>
+          </div>
+          <p className="text-[10px] text-muted leading-relaxed">
+            Předpoklad: invalidita vzniká nyní; dopočtená doba ={" "}
+            {insights.invalidni.st3.dopoctenaDobaRoky} let do důchodového věku.
+            Orientační odhad, nikoli závazný výpočet ČSSZ.
+          </p>
+        </section>
       )}
 
       {/* Charts */}
