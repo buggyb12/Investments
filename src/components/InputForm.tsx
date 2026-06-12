@@ -12,6 +12,8 @@ import type {
 import type { IncomeType } from "../lib/pension";
 import { CalculationModeToggle } from "./CalculationModeToggle";
 import { DetailedYearsTable } from "./DetailedYearsTable";
+import { birthInfoFromRc } from "../lib/pension-detailed/ivk-parser";
+import { statutoryRetirementAge } from "../lib/retirementAge";
 
 const IvkDropZone = lazy(() =>
   import("./IvkDropZone").then((m) => ({ default: m.IvkDropZone })),
@@ -223,6 +225,21 @@ export function InputForm({
                     celkemDnyPojisteni: result.celkemDnyPojisteni ?? undefined,
                     nahradniDny: result.nahradniDny ?? 0,
                   });
+                  // Auto-vyplnění klienta z RČ v IVK — jinak hrozí výpočet
+                  // s defaultním datem narození a špatným rokem odchodu.
+                  const info = birthInfoFromRc(result.rc);
+                  const patch: Partial<ClientInputs> = {};
+                  if (result.jmeno && !inputs.clientName) {
+                    patch.clientName = result.jmeno;
+                  }
+                  if (info) {
+                    patch.birthDate = info.birthDate;
+                    patch.gender = info.gender;
+                    patch.plannedRetirementAge = Math.round(
+                      statutoryRetirementAge(info.birthYear, info.gender),
+                    );
+                  }
+                  if (Object.keys(patch).length > 0) onChange(patch);
                 }}
               />
             </Suspense>

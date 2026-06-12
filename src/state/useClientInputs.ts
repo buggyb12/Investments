@@ -117,7 +117,7 @@ export const DEFAULT_INPUTS: ClientInputs = {
   clientName: "",
   birthDate: defaultBirth.toISOString().slice(0, 10),
   gender: "male",
-  plannedRetirementAge: statutoryRetirementAge(defaultBirthYear, "male"),
+  plannedRetirementAge: Math.round(statutoryRetirementAge(defaultBirthYear, "male")),
   replacementRate: 0.7,
   withdrawalYears: 20,
   accumulationYield: 0.05,

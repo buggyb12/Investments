@@ -28,6 +28,38 @@ export interface IvkParseResult {
   nahradniDny?: number;
 }
 
+/**
+ * Odvodí datum narození a pohlaví z rodného čísla (bez lomítka).
+ * Měsíc: 01–12 muž, 51–62 žena; po r. 2004 též +20 muž / +70 žena.
+ * Století: 9místné RČ = před 1954; 10místné yy<54 → 20xx, jinak 19xx.
+ */
+export function birthInfoFromRc(
+  rc: string,
+): { birthDate: string; gender: "male" | "female"; birthYear: number } | null {
+  const digits = rc.replace(/\D/g, "");
+  if (digits.length !== 9 && digits.length !== 10) return null;
+  const yy = Number(digits.slice(0, 2));
+  let mm = Number(digits.slice(2, 4));
+  const dd = Number(digits.slice(4, 6));
+
+  let gender: "male" | "female" = "male";
+  if (mm > 70) {
+    gender = "female";
+    mm -= 70;
+  } else if (mm > 50) {
+    gender = "female";
+    mm -= 50;
+  } else if (mm > 20) {
+    mm -= 20;
+  }
+  if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
+
+  const year = digits.length === 9 ? 1900 + yy : yy < 54 ? 2000 + yy : 1900 + yy;
+  const iso = `${year}-${String(mm).padStart(2, "0")}-${String(dd).padStart(2, "0")}`;
+  if (Number.isNaN(new Date(iso).getTime())) return null;
+  return { birthDate: iso, gender, birthYear: year };
+}
+
 export async function parseIvkOnServer(
   buffer: ArrayBuffer,
 ): Promise<IvkParseResult> {
