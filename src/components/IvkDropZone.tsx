@@ -1,12 +1,12 @@
 import { useCallback, useRef, useState } from "react";
 import { FileText, Upload, X } from "lucide-react";
-import { parseIvkOnServer } from "../lib/pension-detailed/ivk-parser";
+import { parseIvkOnServer, type IvkParseResult } from "../lib/pension-detailed/ivk-parser";
 
 interface IvkDropZoneProps {
-  onYearsParsed: (rows: Array<{ rok: number; vz: number; vylouceneDny: number }>) => void;
+  onParsed: (result: IvkParseResult) => void;
 }
 
-export function IvkDropZone({ onYearsParsed }: IvkDropZoneProps) {
+export function IvkDropZone({ onParsed }: IvkDropZoneProps) {
   const [state, setState] = useState<"idle" | "parsing" | "ok" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
   const [meta, setMeta] = useState<{ jmeno?: string; rc?: string; rows?: number } | null>(null);
@@ -31,7 +31,7 @@ export function IvkDropZone({ onYearsParsed }: IvkDropZoneProps) {
           setState("error");
           return;
         }
-        onYearsParsed(result.rows);
+        onParsed(result);
         setMeta({
           jmeno: result.jmeno,
           rc: result.rc,
@@ -44,7 +44,7 @@ export function IvkDropZone({ onYearsParsed }: IvkDropZoneProps) {
         setState("error");
       }
     },
-    [onYearsParsed],
+    [onParsed],
   );
 
   const onDrop = (e: React.DragEvent) => {

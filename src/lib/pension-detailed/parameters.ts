@@ -164,11 +164,15 @@ export function getKoeficienty(
 }
 
 /**
- * Důchodový věk podle § 32 zákona 155/1995 Sb. (zjednodušeně).
+ * Důchodový věk podle § 32 zákona 155/1995 Sb. ve znění důchodové reformy
+ * 2025 (zákon č. 270/2024 Sb.).
  *
- * Pro ročníky 1971+: 65 let pro muže i ženy.
- * Pro starší ročníky: postupné zvyšování o 2 měsíce/rok od ročníku 1936.
- * Ženy: redukce za vychované děti.
+ * Ročníky 1966+: 65 let + 1 měsíc za každý ročník po 1965, strop 67 let
+ * (ročník 1989+). Pro tyto ročníky už neplatí redukce za vychované děti.
+ * Příklad: ročník 1975 → 65 let + 10 měsíců.
+ *
+ * Starší ročníky: původní tabulka (postupné zvyšování od ročníku 1936,
+ * ženy s redukcí za vychované děti).
  */
 export function duchodovyVek(
   rokNarozeni: number,
@@ -176,8 +180,9 @@ export function duchodovyVek(
   pohlavi: Gender,
   pocetDeti: number = 0,
 ): { roky: number; mesice: number } {
-  if (rokNarozeni >= 1971) {
-    return { roky: 65, mesice: 0 };
+  if (rokNarozeni >= 1966) {
+    const mesiceNavic = Math.min(rokNarozeni - 1965, 24);
+    return { roky: 65 + Math.floor(mesiceNavic / 12), mesice: mesiceNavic % 12 };
   }
 
   if (pohlavi === "M") {

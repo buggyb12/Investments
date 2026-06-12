@@ -3,7 +3,7 @@ import { Download } from "lucide-react";
 import { pdf } from "@react-pdf/renderer";
 import type { ScenarioResult } from "../lib/pension";
 import type { Allocation, PortfolioMetrics } from "../lib/portfolio";
-import type { ClientInputs } from "../state/useClientInputs";
+import type { ClientInputs, PensionInsights } from "../state/useClientInputs";
 import { ClientReport } from "./pdf/ClientReport";
 
 interface DownloadReportButtonProps {
@@ -11,6 +11,9 @@ interface DownloadReportButtonProps {
   inputs: ClientInputs;
   allocation: Allocation;
   portfolioMetrics: PortfolioMetrics;
+  insights?: PensionInsights;
+  /** Měsíční příjem odvozený z IVK (detailní mód) — do PDF místo defaultů. */
+  effectiveGross?: number;
   variant?: "primary" | "ghost";
   label?: string;
 }
@@ -20,6 +23,8 @@ export function DownloadReportButton({
   inputs,
   allocation,
   portfolioMetrics,
+  insights,
+  effectiveGross,
   variant = "primary",
   label = "Stáhnout report (PDF)",
 }: DownloadReportButtonProps) {
@@ -36,6 +41,8 @@ export function DownloadReportButton({
           inputs={inputs}
           allocation={allocation}
           portfolioMetrics={portfolioMetrics}
+          insights={insights}
+          effectiveGross={effectiveGross}
         />
       );
       const blob = await pdf(doc).toBlob();

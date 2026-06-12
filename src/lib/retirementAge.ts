@@ -37,7 +37,9 @@ const FEMALE_BY_YEAR: Record<number, number> = {
 };
 
 export function statutoryRetirementAge(birthYear: number, gender: Gender): number {
-  if (birthYear >= 1971) return 65;
+  // Důchodová reforma 2025 (zákon č. 270/2024 Sb.): ročníky 1966+
+  // +1 měsíc za ročník nad 65 let, strop 67 (ročník 1989+).
+  if (birthYear >= 1966) return 65 + Math.min(birthYear - 1965, 24) / 12;
   const table = gender === "male" ? MALE_BY_YEAR : FEMALE_BY_YEAR;
   return table[birthYear] ?? 65;
 }

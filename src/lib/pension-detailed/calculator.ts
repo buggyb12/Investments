@@ -119,7 +119,10 @@ export function vypocet(vstup: Vstup): Vysledek {
   let pocetVyloucenych = 0;
   const rocniDetaily: RocniDetail[] = [];
 
-  const rokZacatek = 1986;
+  // § 18 zákona 155/1995 Sb.: rozhodné období začíná rokem následujícím
+  // po roce, v němž pojištěnec dosáhl 18 let věku, nejdříve však 1986.
+  // Dřívější natvrdo 1986 ředilo OVZ nulovými roky před dospělostí klienta.
+  const rokZacatek = Math.max(1986, vstup.datumNarozeni.getFullYear() + 19);
   const rokKonec = rokP - 1;
 
   for (let r = rokZacatek; r <= rokKonec; r++) {

@@ -215,10 +215,14 @@ export function InputForm({
               }
             >
               <IvkDropZone
-                onYearsParsed={(rows) => {
-                  for (const r of rows) {
+                onParsed={(result) => {
+                  for (const r of result.rows) {
                     setYear(r.rok, { vz: r.vz, vylouceneDny: r.vylouceneDny });
                   }
+                  setDetailed({
+                    celkemDnyPojisteni: result.celkemDnyPojisteni ?? undefined,
+                    nahradniDny: result.nahradniDny ?? 0,
+                  });
                 }}
               />
             </Suspense>

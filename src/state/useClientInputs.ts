@@ -6,6 +6,7 @@ import {
   type StatePensionResult,
 } from "../lib/pension";
 import {
+  PREDIKCE_VARIANTY,
   duchodovyVek,
   getParametry,
   toStatePensionResult,
@@ -38,12 +39,25 @@ export interface DetailedInputs {
   dnyPresluhovani: number;
   /** Zapnutí modelace „důchod po doplnění chybějících dob". */
   doplnitChybejici: boolean;
+  /**
+   * Souhrn evidovaných dnů pojištění z ČSSZ IVK (vč. náhradních dob).
+   * Přesnější než počet let s nenulovým VZ — zachycuje částečné roky.
+   */
+  celkemDnyPojisteni?: number;
+  /** Dny náhradních dob z IVK — do doby pojištění se krátí na 80 %. */
+  nahradniDny?: number;
 }
 
 /** Odvozené orientační výstupy nad rámec hlavní gap analýzy. */
 export interface PensionInsights {
   /** Zákonný důchodový věk (nárok na řádný starobní důchod). */
   zakonnyVek: { roky: number; mesice: number };
+  /** Doba pojištění vstupující do výpočtu (evidovaná + projekce do odchodu). */
+  dobaPojisteni?: {
+    evidovanaRoky: number;
+    projekceRoky: number;
+    celkemRoky: number;
+  };
   /** Srovnání důchodu podle dostupných dat vs. po doplnění chybějících dob. */
   doplneniDob?: {
     aktualni: StatePensionResult;
@@ -221,23 +235,76 @@ export function useClientInputs() {
         safeBirth.getMonth(),
         Math.min(safeBirth.getDate(), 28),
       );
+      // Roky s daty — vč. let jen s vyloučenými dny (náhradní doby z IVK),
+      // aby se nulový VZ těchto let neředil do OVZ.
       const filledRows = inputs.detailed.rocniData
-        .filter((r) => r.rok < datumPriznani.getFullYear() && r.vz > 0)
+        .filter(
+          (r) =>
+            r.rok < datumPriznani.getFullYear() &&
+            (r.vz > 0 || r.vylouceneDny > 0),
+        )
         .map<VstupRok>((r) => ({
           rok: r.rok,
           vymerovaciZaklad: r.vz,
           vylouceneDny: r.vylouceneDny,
         }));
+      const earningRows = filledRows.filter((r) => r.vymerovaciZaklad > 0);
 
-      if (filledRows.length > 0) {
+      if (earningRows.length > 0) {
+        const currentYear = new Date().getFullYear();
+
+        // Projekce budoucí doby pojištění a příjmu do data odchodu — stejně
+        // jako ČSSZ/konkurence předpokládáme, že klient pracuje dál. Poslední
+        // známý VZ roste tempem zvolené predikční varianty.
+        const rust = PREDIKCE_VARIANTY[inputs.detailed.varianta];
+        const lastEarning = earningRows.reduce((a, b) => (b.rok > a.rok ? b : a));
+        const knownYears = new Set(filledRows.map((r) => r.rok));
+        const projRows: VstupRok[] = [];
+        for (
+          let r = Math.max(currentYear, lastEarning.rok + 1);
+          r < datumPriznani.getFullYear();
+          r++
+        ) {
+          if (knownYears.has(r)) continue;
+          projRows.push({
+            rok: r,
+            vymerovaciZaklad: Math.round(
+              lastEarning.vymerovaciZaklad *
+                Math.pow(1 + rust, r - lastEarning.rok),
+            ),
+            vylouceneDny: 0,
+          });
+        }
+
+        // Doba pojištění: preferuj souhrn dnů z ČSSZ IVK (zachycuje částečné
+        // roky; náhradní doby krátíme na 80 % dle § 34), fallback = počet let
+        // s nenulovým VZ. K tomu budoucí doba do data odchodu.
+        const nd = inputs.detailed.nahradniDny ?? 0;
+        const ivkDny = inputs.detailed.celkemDnyPojisteni;
+        const evidovanaRoky =
+          ivkDny && ivkDny > 0 ? (ivkDny - 0.2 * nd) / 365.25 : filledYears;
+        const projekceRoky = Math.max(
+          0,
+          (datumPriznani.getTime() - Date.now()) /
+            (365.25 * 24 * 60 * 60 * 1000),
+        );
+        const rokyPojisteni = Math.floor(evidovanaRoky + projekceRoky);
+        insights.dobaPojisteni = {
+          evidovanaRoky: Math.round(evidovanaRoky * 10) / 10,
+          projekceRoky: Math.round(projekceRoky * 10) / 10,
+          celkemRoky: rokyPojisteni,
+        };
+
+        const rowsProVypocet = [...filledRows, ...projRows];
+
         const v = vypocet({
           datumNarozeni: safeBirth,
           pohlavi,
           pocetDeti,
           datumPriznani,
-          rokyPojisteni: Math.max(filledYears, filledRows.length),
+          rokyPojisteni,
           dnyPresluhovani: inputs.detailed.dnyPresluhovani,
-          rokyDat: filledRows,
+          rokyDat: rowsProVypocet,
           varianta: inputs.detailed.varianta,
         });
         statePensionOverride = toStatePensionResult(
@@ -248,8 +315,8 @@ export function useClientInputs() {
 
         // — Bod 3: doplnění chybějících dob pojištění —
         const prumernyVz = Math.round(
-          filledRows.reduce((s, r) => s + r.vymerovaciZaklad, 0) /
-            filledRows.length,
+          earningRows.reduce((s, r) => s + r.vymerovaciZaklad, 0) /
+            earningRows.length,
         );
         const chybejiciRoky = inputs.detailed.rocniData.filter(
           (r) =>
@@ -263,20 +330,21 @@ export function useClientInputs() {
           prumernyVz > 0
         ) {
           const filledRowsDoplneno: VstupRok[] = [
-            ...filledRows,
-            ...chybejiciRoky.map<VstupRok>((r) => ({
-              rok: r.rok,
-              vymerovaciZaklad: prumernyVz,
-              vylouceneDny: r.vylouceneDny,
-            })),
+            ...rowsProVypocet,
+            ...chybejiciRoky
+              .filter((r) => !knownYears.has(r.rok))
+              .map<VstupRok>((r) => ({
+                rok: r.rok,
+                vymerovaciZaklad: prumernyVz,
+                vylouceneDny: r.vylouceneDny,
+              })),
           ];
           const vDopl = vypocet({
             datumNarozeni: safeBirth,
             pohlavi,
             pocetDeti,
             datumPriznani,
-            rokyPojisteni:
-              Math.max(filledYears, filledRows.length) + chybejiciRoky.length,
+            rokyPojisteni: rokyPojisteni + chybejiciRoky.length,
             dnyPresluhovani: inputs.detailed.dnyPresluhovani,
             rokyDat: filledRowsDoplneno,
             varianta: inputs.detailed.varianta,
@@ -296,11 +364,11 @@ export function useClientInputs() {
         }
 
         // — Bod 5: invalidní důchod II. a III. stupně —
-        // Výpočtový základ k DNEŠKU (invalidita vzniká nyní): rozhodné období
-        // 1986..(letošní rok − 1). Dopočtená doba = od dneška do důchodového věku.
-        const currentYear = new Date().getFullYear();
+        // Výpočtový základ k DNEŠKU (invalidita vzniká nyní), bez projekce
+        // budoucích let. Dopočtená doba = od dneška do důchodového věku.
         const invalidRows = filledRows.filter((r) => r.rok < currentYear);
         if (invalidRows.length > 0) {
+          const dobaInvalidni = Math.max(1, Math.floor(evidovanaRoky));
           const vInv = vypocet({
             datumNarozeni: safeBirth,
             pohlavi,
@@ -310,7 +378,7 @@ export function useClientInputs() {
               safeBirth.getMonth(),
               Math.min(safeBirth.getDate(), 28),
             ),
-            rokyPojisteni: invalidRows.length,
+            rokyPojisteni: dobaInvalidni,
             rokyDat: invalidRows,
             varianta: inputs.detailed.varianta,
           });
@@ -320,14 +388,14 @@ export function useClientInputs() {
           insights.invalidni = {
             st2: vypocetInvalidni(
               vInv.vypoctovyZaklad,
-              invalidRows.length,
+              dobaInvalidni,
               dopoctenaDoba,
               paramsNow,
               2,
             ),
             st3: vypocetInvalidni(
               vInv.vypoctovyZaklad,
-              invalidRows.length,
+              dobaInvalidni,
               dopoctenaDoba,
               paramsNow,
               3,

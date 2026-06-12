@@ -22,13 +22,23 @@ describe("getParametry 2026", () => {
   });
 });
 
-describe("duchodovyVek", () => {
-  it("muz 1971+ = 65y0m", () => {
-    expect(duchodovyVek(1971, 6, "M", 0)).toEqual({ roky: 65, mesice: 0 });
+describe("duchodovyVek (reforma 2025 — zákon 270/2024 Sb.)", () => {
+  it("muz 1971 = 65y6m (+1 měsíc za ročník po 1965)", () => {
+    expect(duchodovyVek(1971, 6, "M", 0)).toEqual({ roky: 65, mesice: 6 });
   });
 
-  it("zena 1972 with children = 65y0m (ročník 1971+)", () => {
-    expect(duchodovyVek(1972, 1, "Z", 3)).toEqual({ roky: 65, mesice: 0 });
+  it("rocnik 1975 = 65y10m (referenční hodnota konkurence/zákona)", () => {
+    expect(duchodovyVek(1975, 11, "Z", 2)).toEqual({ roky: 65, mesice: 10 });
+    expect(duchodovyVek(1975, 5, "M", 0)).toEqual({ roky: 65, mesice: 10 });
+  });
+
+  it("zena 1972 with children = 65y7m (redukce za děti už neplatí)", () => {
+    expect(duchodovyVek(1972, 1, "Z", 3)).toEqual({ roky: 65, mesice: 7 });
+  });
+
+  it("strop 67 let pro rocnik 1989+", () => {
+    expect(duchodovyVek(1989, 1, "M", 0)).toEqual({ roky: 67, mesice: 0 });
+    expect(duchodovyVek(2000, 1, "Z", 1)).toEqual({ roky: 67, mesice: 0 });
   });
 
   it("muz 1960 (pre-1965)", () => {

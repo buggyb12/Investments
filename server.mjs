@@ -53,8 +53,6 @@ async function tryRead(path) {
 const DATE_PAIR_RE = /(\d{2}\.\d{2}\.\d{4})\s+(\d{2}\.\d{2}\.\d{4})/g;
 // Počet dní — 1–3 ciferné číslo na hranici slova, bez tisícového oddělovače.
 const DAYS_RE = /\b(\d{1,3})\b/;
-// Číslo s případným oddělovačem tisíců (mezera): "30 169", "1 234 567" nebo "365".
-const NUM_RE = /\d{1,3}(?:\s\d{3})+|\d+/g;
 const NAME_RE = /Identifikační údaje pojištěnce:\s+(.+)/;
 const RC_RE = /^\s*(\d{9,10})\s*$/;
 
@@ -169,25 +167,34 @@ function parseIvkLines(lines) {
       const segEnd = i + 1 < pairs.length ? pairs[i + 1].start : line.length;
       const seg = line.slice(segStart, segEnd);
 
-      // Počet dní extrahuj zvlášť (1–3 ciferné, bez tisícového oddělovače),
-      // jinak by greedy NUM_RE spojil "366 136 072" do jednoho čísla.
+      // Počet dní extrahuj zvlášť (1–3 ciferné, bez tisícového oddělovače).
       const dm2 = DAYS_RE.exec(seg);
       if (!dm2) continue;
       const pocetDni = Number(dm2[1]);
-      if (pocetDni < 1 || pocetDni > 366) continue;
+      // 0 dní je validní u řádků typu "vyměřovací základ" (doplatek VZ bez dnů).
+      if (pocetDni < 0 || pocetDni > 366) continue;
 
       const rest = seg.slice(dm2.index + dm2[0].length);
-      const nums = [];
-      NUM_RE.lastIndex = 0;
-      let nm;
-      while ((nm = NUM_RE.exec(rest)) !== null) {
-        nums.push(parseIntStripped(nm[0]));
+      // Sloupce "VZ" a "vyloučené doby" se v textové vrstvě slijí do jedné
+      // sekvence číslic (např. "5 318 353" = VZ 5 318 + vyl. 353). Greedy
+      // regex s tisícovými mezerami je proto nespolehlivý. Heuristika:
+      // POSLEDNÍ číselný token je sloupec vyloučených dob, vše před ním
+      // jsou tisícové skupiny vyměřovacího základu.
+      const tokens = rest.match(/\d+/g) ?? [];
+      let vymerovaciZaklad = 0;
+      let vylouceneDoby = 0;
+      if (tokens.length === 1) {
+        // Jen jedno číslo → VZ prázdný (např. OSVČ), číslo je vyloučená doba.
+        vylouceneDoby = Number(tokens[0]);
+      } else if (tokens.length >= 2) {
+        vylouceneDoby = Number(tokens[tokens.length - 1]);
+        vymerovaciZaklad = Number(tokens.slice(0, -1).join(""));
+        if (vylouceneDoby > 366) {
+          // Vyloučené doby nemohou přesáhnout rok — celá sekvence je VZ.
+          vymerovaciZaklad = Number(tokens.join(""));
+          vylouceneDoby = 0;
+        }
       }
-
-      // VZ a vyloučené doby jsou volitelné (u OSVČ bývají prázdné).
-      const vymerovaciZaklad = nums.length >= 2 ? nums[0] : 0;
-      const vylouceneDoby =
-        nums.length >= 2 ? nums[1] : nums.length === 1 ? nums[0] : 0;
 
       const druh = seg.slice(0, dm2.index).replace(/\s+/g, " ").trim();
 
@@ -204,27 +211,54 @@ function parseIvkLines(lines) {
 
   const vzPerYear = {};
   const excludedDaysPerYear = {};
+  let nahradniDny = 0;
   for (const p of dobyPojisteni) {
     const yOd = Number(p.od.slice(0, 4));
     const yDo = Number(p.do.slice(0, 4));
     if (!yOd || yOd !== yDo) continue;
+    // Náhradní doby ("ND - uchazeč o zaměstnání", "náhradní doba" apod.):
+    // do doby pojištění se krátí na 80 % (řeší klient), pro OVZ jsou to
+    // vyloučené doby (§ 16 odst. 4) — jinak by nulový VZ ředil průměr.
+    const jeNahradni = /^nd\b|náhradní/i.test(p.druh);
+    if (jeNahradni) nahradniDny += p.pocetDni;
     vzPerYear[yOd] = (vzPerYear[yOd] ?? 0) + p.vymerovaciZaklad;
     excludedDaysPerYear[yOd] =
-      (excludedDaysPerYear[yOd] ?? 0) + p.vylouceneDoby;
+      (excludedDaysPerYear[yOd] ?? 0) +
+      (jeNahradni ? Math.max(p.vylouceneDoby, p.pocetDni) : p.vylouceneDoby);
+  }
+
+  // Souhrnný počet evidovaných dnů z patičky ČSSZ — přesnější než součet
+  // celých let (zachycuje částečné roky). Vč. náhradních dob.
+  let celkemDnyPojisteni = null;
+  for (const line of lines) {
+    const tm = /Celkový počet evidovaných dob činí:\s*([\d\s]+?)\s*dn/.exec(line);
+    if (tm && celkemDnyPojisteni == null) {
+      celkemDnyPojisteni = parseIntStripped(tm[1]);
+    }
+    // Explicitní souhrn náhradních dob (novější IVK) má přednost před součtem řádků.
+    const nm = /Náhradní doba pojištění činí:\s*([\d\s]+?)\s*dn/.exec(line);
+    if (nm) {
+      nahradniDny = Math.max(nahradniDny, parseIntStripped(nm[1]));
+    }
   }
 
   const years = Object.keys(vzPerYear).map(Number).sort((a, b) => a - b);
-  const rows = years.map((rok) => ({
-    rok,
-    vz: vzPerYear[rok] ?? 0,
-    vylouceneDny: excludedDaysPerYear[rok] ?? 0,
-  }));
+  const rows = years.map((rok) => {
+    const maxDny = rok % 4 === 0 && (rok % 100 !== 0 || rok % 400 === 0) ? 366 : 365;
+    return {
+      rok,
+      vz: vzPerYear[rok] ?? 0,
+      vylouceneDny: Math.min(excludedDaysPerYear[rok] ?? 0, maxDny),
+    };
+  });
 
   return {
     jmeno,
     rc,
     rows,
     parsedRowsCount: dobyPojisteni.length,
+    celkemDnyPojisteni,
+    nahradniDny,
   };
 }
 

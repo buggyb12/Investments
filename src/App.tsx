@@ -38,6 +38,8 @@ export function App() {
             inputs={inputs}
             allocation={portfolio.allocation}
             portfolioMetrics={portfolio.metrics}
+            insights={insights}
+            effectiveGross={effectiveGross}
             variant="ghost"
             label="Stáhnout PDF"
           />
@@ -125,6 +127,8 @@ export function App() {
             inputs={inputs}
             allocation={portfolio.allocation}
             portfolioMetrics={portfolio.metrics}
+            insights={insights}
+            effectiveGross={effectiveGross}
             label="Stáhnout report (PDF)"
           />
         </div>

@@ -22,6 +22,10 @@ export interface IvkParseResult {
   rc: string;
   rows: IvkRow[];
   parsedRowsCount: number;
+  /** Souhrn evidovaných dnů z patičky ČSSZ (vč. náhradních dob), je-li v PDF. */
+  celkemDnyPojisteni?: number | null;
+  /** Součet dnů náhradních dob ("ND - …") — krátí se na 80 %. */
+  nahradniDny?: number;
 }
 
 export async function parseIvkOnServer(
