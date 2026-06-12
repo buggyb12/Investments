@@ -11,3 +11,9 @@ coverage
 
 # Klientská data (ČSSZ výpisy, reporty — osobní údaje)
 /data/
+
+# SSH klíče — nikdy necommitovat
+github_key*
+id_rsa*
+id_ed25519*
+*.pem
