@@ -8,3 +8,6 @@ dist-ssr
 .vite
 coverage
 *.tsbuildinfo
+
+# Klientská data (ČSSZ výpisy, reporty — osobní údaje)
+/data/
