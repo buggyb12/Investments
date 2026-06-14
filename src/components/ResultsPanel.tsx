@@ -15,6 +15,8 @@ interface ResultsPanelProps {
   inputs: ClientInputs;
   insights?: PensionInsights;
   portfolio: ReturnType<typeof usePortfolio>;
+  /** Měsíční příjem odvozený z IVK (detailní mód) — do PDF místo defaultů. */
+  effectiveGross?: number;
 }
 
 /** Formátuje důchodový věk z {roky, měsíce} na čitelný text. */
@@ -28,6 +30,7 @@ export function ResultsPanel({
   inputs,
   insights,
   portfolio,
+  effectiveGross,
 }: ResultsPanelProps) {
   const noWorkYears =
     inputs.mode === "approximation" && inputs.yearsInsured <= 0;
@@ -434,6 +437,8 @@ export function ResultsPanel({
           inputs={inputs}
           allocation={portfolio.allocation}
           portfolioMetrics={portfolio.metrics}
+          insights={insights}
+          effectiveGross={effectiveGross}
         />
       </motion.div>
     </div>

@@ -98,6 +98,7 @@ export function App() {
               inputs={inputs}
               insights={insights}
               portfolio={portfolio}
+              effectiveGross={effectiveGross}
             />
           </section>
         </div>
