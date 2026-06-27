@@ -4,10 +4,17 @@ import { motion } from "motion/react";
 import type { ScenarioResult } from "../lib/pension";
 import type { ClientInputs, PensionInsights } from "../state/useClientInputs";
 import type { usePortfolio } from "../state/usePortfolio";
+import {
+  DOBA_POJISTENI_NAROK,
+  INVALIDITA_STUPNE,
+  pozadovanaDobaPojisteni,
+  type InvalidniVysledek,
+} from "../lib/pension-detailed";
 import { formatCZK, formatPercent, formatYears } from "../lib/format";
 import { MetricCard } from "./MetricCard";
 import { GapChart } from "./GapChart";
 import { ProjectionChart } from "./ProjectionChart";
+import { RetirementValueChart } from "./RetirementValueChart";
 import { DownloadReportButton } from "./DownloadReportButton";
 
 interface ResultsPanelProps {
@@ -33,6 +40,15 @@ export function ResultsPanel({
     inputs.mode === "approximation" && inputs.yearsInsured <= 0;
   const tooLate = result.yearsToRetirement <= 0;
   const [showRealitaDetail, setShowRealitaDetail] = useState(false);
+  const [showInvalidConditions, setShowInvalidConditions] = useState(false);
+
+  // Aktuální věk klienta — pro podmínky vzniku nároku na invalidní důchod.
+  const birth = new Date(inputs.birthDate);
+  const clientAge = Number.isNaN(birth.getTime())
+    ? 40
+    : Math.floor(
+        (Date.now() - birth.getTime()) / (365.25 * 24 * 60 * 60 * 1000),
+      );
 
   const sp = result.statePension;
   const showsNominalDivergence =
@@ -223,6 +239,30 @@ export function ResultsPanel({
         />
       </div>
 
+      {/* Dnešní cíl vs. dnešní odhad vs. budoucí nominální hodnota */}
+      {sp.monthly > 0 && (
+        <section className="space-y-4">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.22em] text-muted mb-1">
+              Dnešní cíl vs. budoucí hodnota důchodu
+            </p>
+            <p className="text-xs text-muted leading-relaxed max-w-xl">
+              Částka {formatCZK(sp.monthly)} <strong>neznamená</strong>, že klient
+              bude v roce {sp.rokPriznani} pobírat jen {formatCZK(sp.monthly)} —
+              jde o přepočet do dnešních cen. Skutečně vyplácený důchod bude
+              nominálně vyšší ({formatCZK(sp.monthlyNominal)}) vlivem růstu mezd a
+              valorizací.
+            </p>
+          </div>
+          <RetirementValueChart
+            target={result.targetIncome}
+            todayValue={sp.monthly}
+            nominalValue={sp.monthlyNominal}
+            retirementYear={sp.rokPriznani}
+          />
+        </section>
+      )}
+
       {/* Detail výpočtu — nominal vs today */}
       {showsNominalDivergence && (
         <div>
@@ -344,7 +384,7 @@ export function ResultsPanel({
         </section>
       )}
 
-      {/* Bod 5 — orientační invalidní důchod */}
+      {/* Bod 5 — orientační invalidní důchod I., II. a III. stupně */}
       {insights?.invalidni && (
         <section className="space-y-4">
           <div>
@@ -352,35 +392,103 @@ export function ResultsPanel({
               Invalidní důchod — orientačně
             </p>
             <p className="text-xs text-muted leading-relaxed max-w-xl">
-              Odhad ze stejných vstupních dat jako starobní důchod (výpočtový
+              Vychází ze stejných vstupních dat jako starobní důchod (výpočtový
               základ + dopočtená doba do důchodového věku). Slouží jako výchozí
-              bod pro návrh pojištění výpadku příjmu.
+              bod pro návrh pojištění výpadku příjmu — kolik by klient v případě
+              invalidity reálně pobíral a jak velký výpadek je třeba pokrýt.
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-px bg-line border border-line text-center">
-            <div className="bg-paper px-3 py-4">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-muted mb-1">
-                II. stupeň
-              </p>
-              <p className="display num text-2xl text-ink">
-                {formatCZK(insights.invalidni.st2.duchodCelkem)}
-              </p>
-              <p className="text-[10px] text-muted mt-0.5">
-                / měs · sazba {insights.invalidni.st2.sazbaPct} %/rok
-              </p>
-            </div>
-            <div className="bg-paper px-3 py-4">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-muted mb-1">
-                III. stupeň
-              </p>
-              <p className="display num text-2xl text-ink">
-                {formatCZK(insights.invalidni.st3.duchodCelkem)}
-              </p>
-              <p className="text-[10px] text-muted mt-0.5">
-                / měs · sazba {insights.invalidni.st3.sazbaPct} %/rok
-              </p>
-            </div>
+          <div className="grid grid-cols-3 gap-px bg-line border border-line text-center">
+            {(
+              [
+                ["I. stupeň", insights.invalidni.st1],
+                ["II. stupeň", insights.invalidni.st2],
+                ["III. stupeň", insights.invalidni.st3],
+              ] as [string, InvalidniVysledek][]
+            ).map(([label, v]) => (
+              <div key={label} className="bg-paper px-2 py-4">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-muted mb-1">
+                  {label}
+                </p>
+                <p className="display num text-xl text-ink">
+                  {formatCZK(v.duchodCelkem)}
+                </p>
+                <p className="text-[10px] text-muted mt-0.5">
+                  / měs · {v.sazbaPct} %/rok
+                </p>
+              </div>
+            ))}
           </div>
+
+          {/* Podmínky vzniku nároku */}
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowInvalidConditions((v) => !v)}
+              className="flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-muted hover:text-ink transition-colors"
+            >
+              <ChevronDown
+                size={14}
+                className={`transition-transform ${showInvalidConditions ? "rotate-180" : ""}`}
+              />
+              <span>
+                {showInvalidConditions ? "Skrýt" : "Zobrazit"} podmínky vzniku
+                nároku
+              </span>
+            </button>
+            {showInvalidConditions && (
+              <div className="mt-4 space-y-5 border border-line p-4 text-xs leading-relaxed text-ink/80">
+                <p>
+                  Pro nárok na invalidní důchod musí být splněné{" "}
+                  <strong>dvě podmínky</strong>:
+                </p>
+
+                <div className="space-y-2">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-muted">
+                    1. Posouzení zdravotního stavu
+                  </p>
+                  <ul className="space-y-1">
+                    {INVALIDITA_STUPNE.map((s) => (
+                      <li key={s.stupen} className="flex gap-2">
+                        <span className="text-ink font-medium shrink-0">
+                          {s.nazev}:
+                        </span>
+                        <span>{s.poklesText}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-muted">
+                    Pokles pracovní schopnosti posuzuje posudkový lékař dle
+                    vyhlášky č. 359/2009 Sb.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-muted">
+                    2. Potřebná doba pojištění (podle věku)
+                  </p>
+                  <table className="w-full num">
+                    <tbody>
+                      {DOBA_POJISTENI_NAROK.map((r) => (
+                        <tr key={r.vek} className="border-t border-line/40">
+                          <td className="py-1 pr-3 text-ink/80 whitespace-nowrap align-top">
+                            {r.vek}
+                          </td>
+                          <td className="py-1 text-ink/70">{r.doba}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <p className="text-muted">
+                    Pro klienta ve věku{" "}
+                    <span className="num text-ink">{clientAge}</span> let:
+                    potřeba {pozadovanaDobaPojisteni(clientAge)}.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
           <p className="text-[10px] text-muted leading-relaxed">
             Předpoklad: invalidita vzniká nyní; dopočtená doba ={" "}
             {insights.invalidni.st3.dopoctenaDobaRoky} let do důchodového věku.
