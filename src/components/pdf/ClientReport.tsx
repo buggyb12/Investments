@@ -16,7 +16,7 @@ import {
   type Allocation,
   type PortfolioMetrics,
 } from "../../lib/portfolio";
-import type { ClientInputs } from "../../state/useClientInputs";
+import type { ClientInputs, PensionInsights } from "../../state/useClientInputs";
 
 // Built-in PDF fonts (Helvetica/Times) use WinAnsi encoding, which
 // silently DROPS Czech-specific diacritics (č, ř, ě, š, ž, ů, ť) —
@@ -237,6 +237,13 @@ interface ClientReportProps {
   inputs: ClientInputs;
   allocation: Allocation;
   portfolioMetrics: PortfolioMetrics;
+  insights?: PensionInsights;
+  /** Měsíční příjem odvozený z IVK (detailní mód). */
+  effectiveGross?: number;
+}
+
+function formatVek(v: { roky: number; mesice: number }): string {
+  return v.mesice ? `${v.roky} let ${v.mesice} měs.` : `${v.roky} let`;
 }
 
 const incomeTypeLabels: Record<string, string> = {
@@ -281,6 +288,38 @@ function MetricCell({ step, title, value, description, subValue, tone = "default
   );
 }
 
+interface DetailRowProps {
+  label: string;
+  value: string;
+  note?: string;
+}
+
+function DetailRow({ label, value, note }: DetailRowProps) {
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+        gap: 16,
+        paddingVertical: 5,
+        borderBottomWidth: 1,
+        borderBottomColor: "rgba(26,26,26,0.10)",
+      }}
+    >
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontSize: 8.5 }}>{label}</Text>
+        {note && (
+          <Text style={{ fontSize: 7, color: "#7C7570", marginTop: 1 }}>
+            {note}
+          </Text>
+        )}
+      </View>
+      <Text style={{ fontSize: 9.5, fontWeight: 700 }}>{value}</Text>
+    </View>
+  );
+}
+
 const FUND_COLORS: Record<string, string> = {
   aggh: "#1E3A5C",
   vwce: "#1A1A1A",
@@ -293,6 +332,8 @@ export function ClientReport({
   inputs,
   allocation,
   portfolioMetrics,
+  insights,
+  effectiveGross,
 }: ClientReportProps) {
   const today = new Date().toLocaleDateString("cs-CZ", {
     year: "numeric",
@@ -302,6 +343,17 @@ export function ClientReport({
 
   const replacementPct = Math.round(inputs.replacementRate * 100);
   const split = splitMonthlyContribution(result.monthlyContribution, allocation);
+
+  // Detailní mód: vstupy odvozené z nahraného IVK, ne aproximační defaulty.
+  const isDetailed = inputs.mode === "detailed";
+  const grossShown =
+    isDetailed && effectiveGross && effectiveGross > 0
+      ? effectiveGross
+      : inputs.grossMonthly;
+  const dobaPojisteni = insights?.dobaPojisteni;
+  const zakonnyVek = insights?.zakonnyVek;
+  const sp = result.statePension;
+  const nominalDiff = sp.monthlyNominal - sp.monthly;
 
   return (
     <Document
@@ -368,25 +420,43 @@ export function ClientReport({
             </Text>
           </View>
           <View style={styles.inputCell}>
-            <Text style={styles.inputLabel}>Typ příjmu</Text>
+            <Text style={styles.inputLabel}>
+              {isDetailed ? "Hrubý příjem (z IVK)" : "Hrubý příjem"}
+            </Text>
+            <Text style={styles.inputValue}>{formatCZK(grossShown)}</Text>
+          </View>
+          <View style={styles.inputCell}>
+            <Text style={styles.inputLabel}>
+              {isDetailed && dobaPojisteni
+                ? "Doba pojištění (vč. projekce)"
+                : "Odpracované roky"}
+            </Text>
             <Text style={styles.inputValue}>
-              {incomeTypeLabels[inputs.incomeType]}
+              {isDetailed && dobaPojisteni
+                ? `${dobaPojisteni.celkemRoky} let (${dobaPojisteni.evidovanaRoky} evidováno + ${dobaPojisteni.projekceRoky} do odchodu)`
+                : inputs.yearsInsured}
             </Text>
           </View>
-          <View style={styles.inputCell}>
-            <Text style={styles.inputLabel}>Hrubý příjem</Text>
-            <Text style={styles.inputValue}>{formatCZK(inputs.grossMonthly)}</Text>
-          </View>
-          <View style={styles.inputCell}>
-            <Text style={styles.inputLabel}>Odpracované roky</Text>
-            <Text style={styles.inputValue}>{inputs.yearsInsured}</Text>
-          </View>
+          {!isDetailed && (
+            <View style={styles.inputCell}>
+              <Text style={styles.inputLabel}>Typ příjmu</Text>
+              <Text style={styles.inputValue}>
+                {incomeTypeLabels[inputs.incomeType]}
+              </Text>
+            </View>
+          )}
           <View style={styles.inputCell}>
             <Text style={styles.inputLabel}>Plánovaný odchod</Text>
             <Text style={styles.inputValue}>
               {inputs.plannedRetirementAge} let
             </Text>
           </View>
+          {zakonnyVek && (
+            <View style={styles.inputCell}>
+              <Text style={styles.inputLabel}>Zákonný důchodový věk</Text>
+              <Text style={styles.inputValue}>{formatVek(zakonnyVek)}</Text>
+            </View>
+          )}
           <View style={styles.inputCell}>
             <Text style={styles.inputLabel}>Již naspořeno</Text>
             <Text style={styles.inputValue}>
@@ -394,6 +464,52 @@ export function ClientReport({
             </Text>
           </View>
         </View>
+
+        {/* Doplňující výstupy: nominál/reál, doplnění dob, invalidita */}
+        {(insights || nominalDiff > 1) && (
+          <View style={{ marginTop: 14 }}>
+            <Text style={[styles.sectionTitle, { marginBottom: 6 }]}>
+              Doplňující přehled
+            </Text>
+
+            {nominalDiff > 1 && (
+              <DetailRow
+                label={`Důchod nominálně v r. ${sp.rokPriznani} / v dnešní kupní síle`}
+                value={`${formatCZK(sp.monthlyNominal)} / ${formatCZK(sp.monthly)}`}
+                note={`rozdíl vlivem inflace ${formatPercent(inputs.inflation, 1)} p.a.: ${formatCZK(nominalDiff)}`}
+              />
+            )}
+
+            {zakonnyVek && (
+              <DetailRow
+                label="Zvolený věk odchodu vs. zákonný nárok"
+                value={`${inputs.plannedRetirementAge} let vs. ${formatVek(zakonnyVek)}`}
+                note={
+                  inputs.plannedRetirementAge <
+                  zakonnyVek.roky + zakonnyVek.mesice / 12
+                    ? "Zvolený odchod je před vznikem nároku na řádný starobní důchod (předčasný důchod = trvalé krácení)."
+                    : undefined
+                }
+              />
+            )}
+
+            {insights?.doplneniDob && (
+              <DetailRow
+                label={`Důchod po doplnění ${insights.doplneniDob.pocetDoplnenych} chybějících let pojištění`}
+                value={`${formatCZK(insights.doplneniDob.aktualni.monthly)} → ${formatCZK(insights.doplneniDob.poDoplneni.monthly)}`}
+                note={`rozdíl ${formatCZK(insights.doplneniDob.rozdil)} měsíčně (doplněno průměrem známých let, v dnešní kupní síle)`}
+              />
+            )}
+
+            {insights?.invalidni && (
+              <DetailRow
+                label="Orientační invalidní důchod (vznik invalidity nyní)"
+                value={`I. ${formatCZK(insights.invalidni.st1.duchodCelkem)} · II. ${formatCZK(insights.invalidni.st2.duchodCelkem)} · III. ${formatCZK(insights.invalidni.st3.duchodCelkem)}`}
+                note="Stupně dle poklesu prac. schopnosti (I. 35–49 %, II. 50–69 %, III. 70 %+); nárok podmiňuje i potřebná doba pojištění dle věku. Podklad pro pojištění invalidity."
+              />
+            )}
+          </View>
+        )}
 
         <View style={styles.footer} fixed>
           <Text>

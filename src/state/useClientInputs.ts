@@ -44,6 +44,12 @@ export interface DetailedInputs {
 export interface PensionInsights {
   /** Zákonný důchodový věk (nárok na řádný starobní důchod). */
   zakonnyVek: { roky: number; mesice: number };
+  /** Doba pojištění pro report: evidované roky (s VZ) + projekce do odchodu. */
+  dobaPojisteni?: {
+    celkemRoky: number;
+    evidovanaRoky: number;
+    projekceRoky: number;
+  };
   /** Srovnání důchodu podle dostupných dat vs. po doplnění chybějících dob. */
   doplneniDob?: {
     aktualni: StatePensionResult;
@@ -246,6 +252,24 @@ export function useClientInputs() {
           datumPriznani.getFullYear(),
           inputs.inflation,
         );
+
+        // Doba pojištění pro report: evidované roky (s VZ do dneška) + projekce.
+        // Pozn.: evidováno je počítáno po celých letech (z VZ/rok). Přesné dny
+        // pojištění (a tím desetinná evidovaná léta) vyžadují rozšíření IVK
+        // parseru o počet dní/rok — viz diagnóza rozdílu doby pojištění.
+        const dnesniRok = new Date().getFullYear();
+        const evidovanaRoky = inputs.detailed.rocniData.filter(
+          (r) => r.vz > 0 && r.rok <= dnesniRok,
+        ).length;
+        const projekceRoky = Math.max(
+          0,
+          datumPriznani.getFullYear() - dnesniRok,
+        );
+        insights.dobaPojisteni = {
+          evidovanaRoky,
+          projekceRoky,
+          celkemRoky: evidovanaRoky + projekceRoky,
+        };
 
         // — Bod 3: doplnění chybějících dob pojištění —
         const prumernyVz = Math.round(

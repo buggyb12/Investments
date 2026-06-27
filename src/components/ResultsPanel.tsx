@@ -21,6 +21,7 @@ interface ResultsPanelProps {
   result: ScenarioResult;
   inputs: ClientInputs;
   insights?: PensionInsights;
+  effectiveGross?: number;
   portfolio: ReturnType<typeof usePortfolio>;
 }
 
@@ -34,6 +35,7 @@ export function ResultsPanel({
   result,
   inputs,
   insights,
+  effectiveGross,
   portfolio,
 }: ResultsPanelProps) {
   const noWorkYears =
@@ -542,6 +544,8 @@ export function ResultsPanel({
           inputs={inputs}
           allocation={portfolio.allocation}
           portfolioMetrics={portfolio.metrics}
+          insights={insights}
+          effectiveGross={effectiveGross}
         />
       </motion.div>
     </div>
