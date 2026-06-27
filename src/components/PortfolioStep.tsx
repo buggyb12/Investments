@@ -11,6 +11,7 @@ import {
 } from "../lib/portfolio";
 import type { usePortfolio } from "../state/usePortfolio";
 import { AllocationBar } from "./AllocationBar";
+import { AssetClassPie } from "./AssetClassPie";
 import { FundCard } from "./FundCard";
 
 interface PortfolioStepProps {
@@ -85,12 +86,20 @@ export function PortfolioStep({
         </p>
       </div>
 
-      {/* Allocation bar */}
-      <div className="space-y-3">
-        <p className="text-[11px] uppercase tracking-[0.22em] text-muted">
-          Rozložení {portfolio.manuallyOverridden && "— upraveno"}
-        </p>
-        <AllocationBar allocation={portfolio.allocation} />
+      {/* Allocation bar + asset-class pie */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-10 gap-y-6">
+        <div className="space-y-3">
+          <p className="text-[11px] uppercase tracking-[0.22em] text-muted">
+            Rozložení podle fondů {portfolio.manuallyOverridden && "— upraveno"}
+          </p>
+          <AllocationBar allocation={portfolio.allocation} />
+        </div>
+        <div className="space-y-3">
+          <p className="text-[11px] uppercase tracking-[0.22em] text-muted">
+            Složení podle tříd aktiv
+          </p>
+          <AssetClassPie allocation={portfolio.allocation} />
+        </div>
       </div>
 
       {/* Fund cards 2x2 */}

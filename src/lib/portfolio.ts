@@ -241,3 +241,60 @@ export function splitMonthlyContribution(
   for (const id of FUND_ORDER) out[id] = monthlyTotal * (allocation[id] ?? 0);
   return out;
 }
+
+/**
+ * Třídy aktiv pro klientskou vizualizaci složení portfolia (koláčový graf).
+ * Členění odpovídá tomu, na co je klient zvyklý (Conseq apod.).
+ */
+export type AssetClass =
+  | "akcie"
+  | "dluhopisy"
+  | "nemovitosti"
+  | "penezni"
+  | "alternativy"
+  | "ostatni";
+
+export const ASSET_CLASS_LABELS: Record<AssetClass, string> = {
+  akcie: "Akcie",
+  dluhopisy: "Dluhopisy",
+  nemovitosti: "Nemovitosti",
+  penezni: "Peněžní trh / hotovost",
+  alternativy: "Alternativní investice",
+  ostatni: "Ostatní",
+};
+
+export const ASSET_CLASS_ORDER: AssetClass[] = [
+  "akcie",
+  "dluhopisy",
+  "nemovitosti",
+  "alternativy",
+  "penezni",
+  "ostatni",
+];
+
+/**
+ * Mapování kategorie fondu na třídu aktiv. Až dorazí konkrétní fondy s reálným
+ * složením (akcie/dluhopisy/nemovitosti/…), nahradí se tato 1:1 mapa rozpadem
+ * jednotlivých fondů podle KID a koláč se přepočítá dle vybrané strategie.
+ */
+const FUND_ASSET_CLASS: Record<FundCategory, AssetClass> = {
+  world: "akcie",
+  us: "akcie",
+  bonds: "dluhopisy",
+  gold: "alternativy",
+};
+
+/** Agreguje alokaci fondů na třídy aktiv (jen nenulové), seřazené dle ASSET_CLASS_ORDER. */
+export function assetClassBreakdown(
+  allocation: Allocation,
+): { assetClass: AssetClass; weight: number }[] {
+  const sums = {} as Record<AssetClass, number>;
+  for (const id of FUND_ORDER) {
+    const cls = FUND_ASSET_CLASS[FUNDS[id].category];
+    sums[cls] = (sums[cls] ?? 0) + (allocation[id] ?? 0);
+  }
+  return ASSET_CLASS_ORDER.filter((c) => (sums[c] ?? 0) > 0.0001).map((c) => ({
+    assetClass: c,
+    weight: sums[c],
+  }));
+}

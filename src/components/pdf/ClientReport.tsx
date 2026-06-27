@@ -504,8 +504,8 @@ export function ClientReport({
             {insights?.invalidni && (
               <DetailRow
                 label="Orientační invalidní důchod (vznik invalidity nyní)"
-                value={`II. stupeň ${formatCZK(insights.invalidni.st2.duchodCelkem)} · III. stupeň ${formatCZK(insights.invalidni.st3.duchodCelkem)}`}
-                note="Ze stejných dob pojištění vč. dopočtené doby do důchodového věku. Podklad pro nastavení pojištění invalidity."
+                value={`I. ${formatCZK(insights.invalidni.st1.duchodCelkem)} · II. ${formatCZK(insights.invalidni.st2.duchodCelkem)} · III. ${formatCZK(insights.invalidni.st3.duchodCelkem)}`}
+                note="Stupně dle poklesu prac. schopnosti (I. 35–49 %, II. 50–69 %, III. 70 %+); nárok podmiňuje i potřebná doba pojištění dle věku. Podklad pro pojištění invalidity."
               />
             )}
           </View>

@@ -5,14 +5,17 @@ import { sazbaProStupen, vypocetInvalidni } from "./disability";
 const params = getParametry(2026);
 
 describe("vypocetInvalidni", () => {
-  it("III. stupeň má dvojnásobnou sazbu oproti II. stupni", () => {
-    expect(sazbaProStupen(3)).toBeCloseTo(0.015);
+  it("sazby jednotlivých stupňů odpovídají zákonu", () => {
+    expect(sazbaProStupen(1)).toBeCloseTo(0.005);
     expect(sazbaProStupen(2)).toBeCloseTo(0.0075);
+    expect(sazbaProStupen(3)).toBeCloseTo(0.015);
   });
 
-  it("III. stupeň > II. stupeň při stejných vstupech", () => {
+  it("III. > II. > I. stupeň při stejných vstupech", () => {
+    const st1 = vypocetInvalidni(30000, 20, 20, params, 1);
     const st2 = vypocetInvalidni(30000, 20, 20, params, 2);
     const st3 = vypocetInvalidni(30000, 20, 20, params, 3);
+    expect(st2.duchodCelkem).toBeGreaterThan(st1.duchodCelkem);
     expect(st3.duchodCelkem).toBeGreaterThan(st2.duchodCelkem);
   });
 

@@ -3,12 +3,34 @@ import {
   FUND_ORDER,
   PROFILES,
   adjustAllocation,
+  assetClassBreakdown,
   pickProfileByYears,
   pickProfileByYield,
   portfolioMetrics,
   splitMonthlyContribution,
   type Allocation,
 } from "./portfolio";
+
+describe("assetClassBreakdown", () => {
+  it("agreguje fondy na třídy aktiv a součet zůstává 1", () => {
+    const breakdown = assetClassBreakdown(PROFILES.growth.allocation);
+    const sum = breakdown.reduce((s, b) => s + b.weight, 0);
+    expect(sum).toBeCloseTo(1, 6);
+  });
+
+  it("akcie = world + us (VWCE 0,4 + CSPX 0,4 = 0,8 v růstovém profilu)", () => {
+    const breakdown = assetClassBreakdown(PROFILES.growth.allocation);
+    const akcie = breakdown.find((b) => b.assetClass === "akcie");
+    expect(akcie?.weight).toBeCloseTo(0.8, 6);
+  });
+
+  it("vynechává nulové třídy aktiv", () => {
+    const onlyBonds: Allocation = { aggh: 1, vwce: 0, cspx: 0, sgln: 0 };
+    const breakdown = assetClassBreakdown(onlyBonds);
+    expect(breakdown).toHaveLength(1);
+    expect(breakdown[0].assetClass).toBe("dluhopisy");
+  });
+});
 
 describe("PROFILES", () => {
   it("each profile sums to 1.0", () => {

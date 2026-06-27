@@ -28,6 +28,9 @@ export { toStatePensionResult } from "./adapter";
 export {
   sazbaProStupen,
   vypocetInvalidni,
+  pozadovanaDobaPojisteni,
+  INVALIDITA_STUPNE,
+  DOBA_POJISTENI_NAROK,
   type InvalidniVysledek,
   type StupenInvalidity,
 } from "./disability";

@@ -67,8 +67,9 @@ export interface PensionInsights {
     pocetDoplnenych: number;
     prumernyVz: number;
   };
-  /** Orientační invalidní důchod II. a III. stupně. */
+  /** Orientační invalidní důchod I., II. a III. stupně. */
   invalidni?: {
+    st1: InvalidniVysledek;
     st2: InvalidniVysledek;
     st3: InvalidniVysledek;
   };
@@ -386,6 +387,13 @@ export function useClientInputs() {
           const dopoctenaDoba = Math.max(0, zakonnyVekRoky - ageNow);
           const paramsNow = getParametry(currentYear, inputs.detailed.varianta);
           insights.invalidni = {
+            st1: vypocetInvalidni(
+              vInv.vypoctovyZaklad,
+              invalidRows.length,
+              dopoctenaDoba,
+              paramsNow,
+              1,
+            ),
             st2: vypocetInvalidni(
               vInv.vypoctovyZaklad,
               dobaInvalidni,
