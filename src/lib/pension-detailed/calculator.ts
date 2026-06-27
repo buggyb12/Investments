@@ -5,7 +5,8 @@
  *
  * Postup:
  * 1. Roční vyměřovací základ × koeficient nárůstu = přepočtený VZ
- * 2. Suma přepočtených VZ za roky 1986..(rok přiznání - 1) = úhrn ročních VZ
+ * 2. Suma přepočtených VZ za roky rozhodného období..(rok přiznání - 1)
+ *    (rozhodné období začíná rokem po dosažení 18 let, nejdříve 1986)
  * 3. OVZ = úhrn × 30,4167 / (kal. dny - vyloučené dny)
  * 4. Výpočtový základ = redukce OVZ podle redukčních hranic
  * 5. Procentní výměra = výpočtový základ × roky × procento ± úprava
@@ -60,6 +61,7 @@ export interface Vysledek {
   slevaZaPredcasnostPct: number;
   bonusZaPresluhovaniPct: number;
   podrobnosti: {
+    rozhodneObdobiOd: number;
     uhrnRocnichVz: number;
     pocetKalDnu: number;
     pocetVyloucenychDnu: number;
@@ -119,7 +121,11 @@ export function vypocet(vstup: Vstup): Vysledek {
   let pocetVyloucenych = 0;
   const rocniDetaily: RocniDetail[] = [];
 
-  const rokZacatek = 1986;
+  // Rozhodné období začíná 1.1. roku následujícího po roce dosažení 18 let,
+  // nejdříve však 1.1.1986 (k výdělkům před rozhodným obdobím se nepřihlíží).
+  // Dřívější napevno nastavený rok 1986 nadhodnocoval jmenovatel OVZ u mladších
+  // klientů (počítaly se i nulové roky před 18. narozeninami) → nižší důchod.
+  const rokZacatek = Math.max(1986, vstup.datumNarozeni.getFullYear() + 19);
   const rokKonec = rokP - 1;
 
   for (let r = rokZacatek; r <= rokKonec; r++) {
@@ -208,6 +214,7 @@ export function vypocet(vstup: Vstup): Vysledek {
     slevaZaPredcasnostPct: Math.round(slevaPct * 100 * 1000) / 1000,
     bonusZaPresluhovaniPct: Math.round(bonusPct * 100 * 1000) / 1000,
     podrobnosti: {
+      rozhodneObdobiOd: rokZacatek,
       uhrnRocnichVz: Math.round(uhrnRocnichVz * 100) / 100,
       pocetKalDnu,
       pocetVyloucenychDnu: pocetVyloucenych,

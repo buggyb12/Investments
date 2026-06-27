@@ -111,6 +111,45 @@ describe("vypocet — Python parity", () => {
     expect(Math.abs(v.duchodCelkem - 21909)).toBeLessThan(3);
   });
 
+  it("rozhodné období: starší ročník (1961) začíná 1986", () => {
+    const v = vypocet({
+      datumNarozeni: new Date(1961, 0, 15),
+      pohlavi: "M",
+      pocetDeti: 0,
+      datumPriznani: new Date(2026, 1, 1),
+      rokyPojisteni: 44,
+      rokyDat: roky(1986, 2026, 600000),
+    });
+    expect(v.podrobnosti.rozhodneObdobiOd).toBe(1986);
+  });
+
+  it("rozhodné období: mladší ročník (1990) začíná rokem po 18. narozeninách (2009)", () => {
+    const v = vypocet({
+      datumNarozeni: new Date(1990, 4, 24),
+      pohlavi: "M",
+      pocetDeti: 0,
+      datumPriznani: new Date(2055, 1, 1),
+      rokyPojisteni: 35,
+      rokyDat: roky(2009, 2055, 600000),
+    });
+    expect(v.podrobnosti.rozhodneObdobiOd).toBe(2009);
+  });
+
+  it("mladší ročník: nulové roky před 18 lety nezdvihají jmenovatel OVZ", () => {
+    // Stejná data od 2009; pouze se liší, zda se počítají i prázdné roky 1986–2008.
+    const spolecne = {
+      pohlavi: "M" as const,
+      pocetDeti: 0,
+      datumPriznani: new Date(2055, 1, 1),
+      rokyPojisteni: 35,
+      rokyDat: roky(2009, 2055, 600000),
+    };
+    const v = vypocet({ datumNarozeni: new Date(1990, 4, 24), ...spolecne });
+    // Rozhodné období 2009..2054 (46 let), ne 1986..2054.
+    expect(v.podrobnosti.rocniDetaily[0].rok).toBe(2009);
+    expect(v.osobniVymerovaciZaklad).toBeGreaterThan(0);
+  });
+
   it("returns sensible podrobnosti", () => {
     const v = vypocet({
       datumNarozeni: new Date(1961, 0, 15),
