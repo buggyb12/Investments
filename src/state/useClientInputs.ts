@@ -73,6 +73,19 @@ export interface PensionInsights {
     st2: InvalidniVysledek;
     st3: InvalidniVysledek;
   };
+  /**
+   * Dopad výše odvodů: důchod při současné (vyšší) úrovni budoucích odvodů
+   * vs. při minimálním vyměřovacím základu. Relevantní hlavně pro OSVČ a
+   * majitele s.r.o., kteří si výši odvodů mohou zvolit.
+   */
+  odvody?: {
+    soucasne: StatePensionResult;
+    minimalni: StatePensionResult;
+    /** Rozdíl měsíčního důchodu v dnešní kupní síle (současné − minimální). */
+    rozdil: number;
+    /** Minimální měsíční vyměřovací základ použitý ve scénáři. */
+    minMesic: number;
+  };
 }
 
 export interface ClientInputs {
@@ -104,6 +117,13 @@ const defaultBirthYear = today.getFullYear() - 40;
 const defaultBirth = new Date(defaultBirthYear, 5, 15);
 
 export const ROZHODNE_OBDOBI_OD = 1986;
+
+/**
+ * Orientační minimální vyměřovací základ OSVČ jako podíl průměrné mzdy
+ * (hlavní činnost; reforma 2024–2026 zvedá strop k ~40 %). Slouží jen pro
+ * scénář „minimální vs. vyšší odvody".
+ */
+export const MIN_VZ_PODIL_OSVC = 0.4;
 
 function initialDetailedRows(currentYear: number): DetailedYearRow[] {
   const rows: DetailedYearRow[] = [];
@@ -389,7 +409,7 @@ export function useClientInputs() {
           insights.invalidni = {
             st1: vypocetInvalidni(
               vInv.vypoctovyZaklad,
-              invalidRows.length,
+              dobaInvalidni,
               dopoctenaDoba,
               paramsNow,
               1,
@@ -408,6 +428,45 @@ export function useClientInputs() {
               paramsNow,
               3,
             ),
+          };
+        }
+
+        // — Srovnání minimálních a vyšších odvodů (hlavně OSVČ / s.r.o.) —
+        // Budoucí roky se modelují při minimálním vyměřovacím základu místo
+        // současné (vyšší) úrovně. Ukazuje, o kolik vyšší odvody zvednou důchod.
+        if (projRows.length > 0) {
+          const minMesic = Math.round(
+            MIN_VZ_PODIL_OSVC *
+              getParametry(currentYear, inputs.detailed.varianta).prumernaMzda,
+          );
+          const minRok = minMesic * 12;
+          const projRowsMin: VstupRok[] = projRows.map((p) => ({
+            rok: p.rok,
+            vymerovaciZaklad: Math.round(
+              minRok * Math.pow(1 + rust, p.rok - currentYear),
+            ),
+            vylouceneDny: 0,
+          }));
+          const vMin = vypocet({
+            datumNarozeni: safeBirth,
+            pohlavi,
+            pocetDeti,
+            datumPriznani,
+            rokyPojisteni,
+            dnyPresluhovani: inputs.detailed.dnyPresluhovani,
+            rokyDat: [...filledRows, ...projRowsMin],
+            varianta: inputs.detailed.varianta,
+          });
+          const minimalni = toStatePensionResult(
+            vMin,
+            datumPriznani.getFullYear(),
+            inputs.inflation,
+          );
+          insights.odvody = {
+            soucasne: statePensionOverride,
+            minimalni,
+            rozdil: statePensionOverride.monthly - minimalni.monthly,
+            minMesic,
           };
         }
       }

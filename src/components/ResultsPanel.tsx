@@ -15,6 +15,7 @@ import { MetricCard } from "./MetricCard";
 import { GapChart } from "./GapChart";
 import { ProjectionChart } from "./ProjectionChart";
 import { RetirementValueChart } from "./RetirementValueChart";
+import { GlossarySection } from "./GlossarySection";
 import { DownloadReportButton } from "./DownloadReportButton";
 
 interface ResultsPanelProps {
@@ -500,6 +501,59 @@ export function ResultsPanel({
         </section>
       )}
 
+      {/* Srovnání minimálních a vyšších odvodů */}
+      {insights?.odvody && (
+        <section className="space-y-4">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.22em] text-muted mb-1">
+              Vliv výše odvodů na důchod
+            </p>
+            <p className="text-xs text-muted leading-relaxed max-w-xl">
+              Pokud si výši odvodů můžete zvolit (OSVČ, majitel s.r.o.):
+              kolik vyjde důchod, když budoucí roky budete odvádět z{" "}
+              <strong>minimálního</strong> vyměřovacího základu (
+              {formatCZK(insights.odvody.minMesic)} / měs) oproti{" "}
+              <strong>současné</strong> úrovni.
+            </p>
+          </div>
+          <div className="grid grid-cols-3 gap-px bg-line border border-line text-center">
+            <div className="bg-paper px-3 py-4">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted mb-1">
+                Minimální odvody
+              </p>
+              <p className="display num text-xl text-ink">
+                {formatCZK(insights.odvody.minimalni.monthly)}
+              </p>
+              <p className="text-[10px] text-muted mt-0.5">/ měs</p>
+            </div>
+            <div className="bg-paper px-3 py-4">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted mb-1">
+                Současné odvody
+              </p>
+              <p className="display num text-xl text-ink">
+                {formatCZK(insights.odvody.soucasne.monthly)}
+              </p>
+              <p className="text-[10px] text-muted mt-0.5">/ měs</p>
+            </div>
+            <div className="bg-paper px-3 py-4">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted mb-1">
+                Rozdíl
+              </p>
+              <p className="display num text-xl text-accent">
+                {insights.odvody.rozdil >= 0 ? "+" : ""}
+                {formatCZK(insights.odvody.rozdil)}
+              </p>
+              <p className="text-[10px] text-muted mt-0.5">/ měs</p>
+            </div>
+          </div>
+          <p className="text-[10px] text-muted leading-relaxed">
+            Hodnoty v dnešní kupní síle. Minimální vyměřovací základ orientačně{" "}
+            40 % průměrné mzdy (reforma OSVČ). Vyšší odvody = vyšší procentní
+            výměra důchodu, ale i vyšší platby pojistného dnes.
+          </p>
+        </section>
+      )}
+
       {/* Charts */}
       <motion.section
         initial={{ opacity: 0, y: 16 }}
@@ -526,6 +580,9 @@ export function ResultsPanel({
           />
         </div>
       </motion.section>
+
+      {/* Slovník pojmů */}
+      <GlossarySection />
 
       {/* CTA: Download PDF */}
       <motion.div

@@ -17,6 +17,7 @@ import {
   type PortfolioMetrics,
 } from "../../lib/portfolio";
 import type { ClientInputs, PensionInsights } from "../../state/useClientInputs";
+import { GLOSSARY } from "../../lib/glossary";
 
 // Built-in PDF fonts (Helvetica/Times) use WinAnsi encoding, which
 // silently DROPS Czech-specific diacritics (č, ř, ě, š, ž, ů, ť) —
@@ -508,6 +509,14 @@ export function ClientReport({
                 note="Stupně dle poklesu prac. schopnosti (I. 35–49 %, II. 50–69 %, III. 70 %+); nárok podmiňuje i potřebná doba pojištění dle věku. Podklad pro pojištění invalidity."
               />
             )}
+
+            {insights?.odvody && (
+              <DetailRow
+                label="Vliv výše odvodů (OSVČ / s.r.o.): minimální vs. současné"
+                value={`${formatCZK(insights.odvody.minimalni.monthly)} → ${formatCZK(insights.odvody.soucasne.monthly)}`}
+                note={`vyšší odvody zvednou důchod o ${formatCZK(insights.odvody.rozdil)} měsíčně. Minimální vyměřovací základ orientačně ${formatCZK(insights.odvody.minMesic)} / měs.`}
+              />
+            )}
           </View>
         )}
 
@@ -690,6 +699,40 @@ export function ClientReport({
 
         <View style={styles.footer} fixed>
           <Text>Investiční portfolio — orientační doporučení.</Text>
+          <Text>{today}</Text>
+        </View>
+      </Page>
+
+      {/* Page 3 — Slovník pojmů */}
+      <Page size="A4" style={styles.page}>
+        <View style={styles.header}>
+          <Text style={styles.brand}>Slovník pojmů</Text>
+          <Text style={styles.meta}>{today}</Text>
+        </View>
+
+        <Text style={styles.subline}>
+          Základní důchodové pojmy pro orientaci v reportu.
+        </Text>
+
+        <View>
+          {GLOSSARY.map((item) => (
+            <View
+              key={item.term}
+              style={{ marginBottom: 9 }}
+              wrap={false}
+            >
+              <Text style={{ fontSize: 9.5, fontWeight: 700, marginBottom: 1 }}>
+                {item.term}
+              </Text>
+              <Text style={{ fontSize: 8.5, color: "#3A3631", lineHeight: 1.45 }}>
+                {item.definition}
+              </Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.footer} fixed>
+          <Text>Slovník pojmů — orientační vysvětlení, nikoli závazný výklad.</Text>
           <Text>{today}</Text>
         </View>
       </Page>
