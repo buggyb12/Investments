@@ -1,19 +1,25 @@
 import {
+  Circle,
   Document,
   Font,
   Link,
   Page,
+  Path,
   StyleSheet,
+  Svg,
   Text,
   View,
 } from "@react-pdf/renderer";
 import { formatCZK, formatPercent, formatYears } from "../../lib/format";
 import type { ScenarioResult } from "../../lib/pension";
 import {
+  ASSET_CLASS_LABELS,
+  assetClassBreakdown,
   FUNDS,
   FUND_ORDER,
   splitMonthlyContribution,
   type Allocation,
+  type AssetClass,
   type PortfolioMetrics,
 } from "../../lib/portfolio";
 import type { ClientInputs, PensionInsights } from "../../state/useClientInputs";
@@ -328,6 +334,130 @@ const FUND_COLORS: Record<string, string> = {
   sgln: "#B68A35",
 };
 
+const ASSET_COLORS_PDF: Record<AssetClass, string> = {
+  akcie: "#1A1A1A",
+  dluhopisy: "#1E3A5C",
+  nemovitosti: "#6E7B57",
+  alternativy: "#B68A35",
+  penezni: "#9A938C",
+  ostatni: "#C9C2BB",
+};
+
+/** Logo GFS Group (orientační rekonstrukce značky — dva oranžové oblouky). */
+function GfsLogo() {
+  return (
+    <Svg width={14} height={14} viewBox="0 0 100 100">
+      <Path
+        d="M50 16 A34 34 0 1 1 20 68"
+        stroke="#EE4123"
+        strokeWidth={14}
+        strokeLinecap="round"
+        fill="none"
+      />
+      <Path
+        d="M50 84 A34 34 0 1 1 80 32"
+        stroke="#EE4123"
+        strokeWidth={14}
+        strokeLinecap="round"
+        fill="none"
+      />
+    </Svg>
+  );
+}
+
+/** Patička s logem GFS Group, popiskem a datem — sdílená napříč stranami. */
+function Footer({ label, today }: { label: string; today: string }) {
+  return (
+    <View style={styles.footer} fixed>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+        <GfsLogo />
+        <Text>{label}</Text>
+      </View>
+      <Text>{today}</Text>
+    </View>
+  );
+}
+
+/** Výseč koláče: cesta od středu po oblouku. */
+function arcPath(
+  cx: number,
+  cy: number,
+  r: number,
+  startDeg: number,
+  endDeg: number,
+): string {
+  const a0 = ((startDeg - 90) * Math.PI) / 180;
+  const a1 = ((endDeg - 90) * Math.PI) / 180;
+  const x0 = cx + r * Math.cos(a0);
+  const y0 = cy + r * Math.sin(a0);
+  const x1 = cx + r * Math.cos(a1);
+  const y1 = cy + r * Math.sin(a1);
+  const large = endDeg - startDeg > 180 ? 1 : 0;
+  return `M${cx} ${cy} L${x0} ${y0} A${r} ${r} 0 ${large} 1 ${x1} ${y1} Z`;
+}
+
+/** Koláčový graf složení portfolia podle tříd aktiv (PDF, ručně přes SVG). */
+function AssetClassPiePdf({ allocation }: { allocation: Allocation }) {
+  const data = assetClassBreakdown(allocation);
+  let acc = 0;
+  const slices = data.map((d) => {
+    const start = acc * 360;
+    acc += d.weight;
+    return { ...d, start, end: acc * 360 };
+  });
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 22,
+        marginTop: 8,
+        marginBottom: 16,
+      }}
+    >
+      <Svg width={96} height={96} viewBox="0 0 100 100">
+        {slices.length === 1 ? (
+          <Circle cx={50} cy={50} r={46} fill={ASSET_COLORS_PDF[slices[0].assetClass]} />
+        ) : (
+          slices.map((s) => (
+            <Path
+              key={s.assetClass}
+              d={arcPath(50, 50, 46, s.start, s.end)}
+              fill={ASSET_COLORS_PDF[s.assetClass]}
+            />
+          ))
+        )}
+      </Svg>
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.sectionTitle, { marginBottom: 6 }]}>
+          Složení podle tříd aktiv
+        </Text>
+        {data.map((d) => (
+          <View
+            key={d.assetClass}
+            style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}
+          >
+            <View
+              style={{
+                width: 9,
+                height: 9,
+                backgroundColor: ASSET_COLORS_PDF[d.assetClass],
+                marginRight: 7,
+              }}
+            />
+            <Text style={{ fontSize: 9.5, flex: 1 }}>
+              {ASSET_CLASS_LABELS[d.assetClass]}
+            </Text>
+            <Text style={{ fontSize: 9.5, fontWeight: 700 }}>
+              {Math.round(d.weight * 100)} %
+            </Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 export function ClientReport({
   result,
   inputs,
@@ -376,43 +506,7 @@ export function ClientReport({
           v dnešní kupní síle (deflátováno inflací {formatPercent(inputs.inflation, 1)} p.a.)
         </Text>
 
-        {/* 2x2 grid of metrics */}
-        <View style={styles.metricsGrid}>
-          <MetricCell
-            step="01"
-            title="Realita"
-            value={formatCZK(result.statePension.monthly)}
-            subValue={
-              result.statePension.rokPriznani > new Date().getFullYear() &&
-              Math.abs(result.statePension.monthlyNominal - result.statePension.monthly) > 1
-                ? `nominálně v r. ${result.statePension.rokPriznani}: ${formatCZK(result.statePension.monthlyNominal)}`
-                : undefined
-            }
-            description={`V dnešní kupní síle. Základní výměra ${formatCZK(result.statePension.basicComponent)}, procentní výměra ${formatCZK(result.statePension.percentageComponent)}.`}
-          />
-          <MetricCell
-            step="02"
-            title="Očekávání"
-            value={formatCZK(result.targetIncome)}
-            description={`Pro zachování životní úrovně by bylo ideální mít ${formatCZK(result.targetIncome)} měsíčně, tedy ${replacementPct} % současného příjmu.`}
-          />
-          <MetricCell
-            step="03"
-            title="Rozdíl"
-            value={formatCZK(result.monthlyGap)}
-            tone="accent"
-            description={`Rozdíl ${formatCZK(result.monthlyGap)} měsíčně je třeba pokrýt z vlastních zdrojů — vlastní investice, renta nebo jiný kapitál.`}
-          />
-          <MetricCell
-            step="04"
-            title="Řešení"
-            value={formatCZK(result.monthlyContribution)}
-            tone="secondary"
-            description={`Pro pokrytí po dobu ${formatYears(inputs.withdrawalYears)} je potřeba kapitál ${formatCZK(result.requiredCapital)}. Odpovídá ukládání ${formatCZK(result.monthlyContribution)} měsíčně po ${formatYears(result.yearsToRetirement)} při výnosu ${formatPercent(inputs.accumulationYield, 0)} p.a.`}
-          />
-        </View>
-
-        {/* Vstupy */}
+        {/* Info o osobě — před výpočty */}
         <View style={styles.inputsBox}>
           <View style={styles.inputCell}>
             <Text style={styles.inputLabel}>Datum narození</Text>
@@ -464,6 +558,42 @@ export function ClientReport({
               {formatCZK(inputs.currentSavings)}
             </Text>
           </View>
+        </View>
+
+        {/* 2x2 grid of metrics */}
+        <View style={styles.metricsGrid}>
+          <MetricCell
+            step="01"
+            title="Realita"
+            value={formatCZK(result.statePension.monthly)}
+            subValue={
+              result.statePension.rokPriznani > new Date().getFullYear() &&
+              Math.abs(result.statePension.monthlyNominal - result.statePension.monthly) > 1
+                ? `nominálně v r. ${result.statePension.rokPriznani}: ${formatCZK(result.statePension.monthlyNominal)}`
+                : undefined
+            }
+            description={`V dnešní kupní síle. Základní výměra ${formatCZK(result.statePension.basicComponent)}, procentní výměra ${formatCZK(result.statePension.percentageComponent)}.`}
+          />
+          <MetricCell
+            step="02"
+            title="Očekávání"
+            value={formatCZK(result.targetIncome)}
+            description={`Pro zachování životní úrovně by bylo ideální mít ${formatCZK(result.targetIncome)} měsíčně, tedy ${replacementPct} % současného příjmu.`}
+          />
+          <MetricCell
+            step="03"
+            title="Rozdíl"
+            value={formatCZK(result.monthlyGap)}
+            tone="accent"
+            description={`Rozdíl ${formatCZK(result.monthlyGap)} měsíčně je třeba pokrýt z vlastních zdrojů — vlastní investice, renta nebo jiný kapitál.`}
+          />
+          <MetricCell
+            step="04"
+            title="Řešení"
+            value={formatCZK(result.monthlyContribution)}
+            tone="secondary"
+            description={`Pro pokrytí po dobu ${formatYears(inputs.withdrawalYears)} je potřeba kapitál ${formatCZK(result.requiredCapital)}. Odpovídá ukládání ${formatCZK(result.monthlyContribution)} měsíčně po ${formatYears(result.yearsToRetirement)} při výnosu ${formatPercent(inputs.accumulationYield, 0)} p.a.`}
+          />
         </View>
 
         {/* Doplňující výstupy: nominál/reál, doplnění dob, invalidita */}
@@ -520,12 +650,7 @@ export function ClientReport({
           </View>
         )}
 
-        <View style={styles.footer} fixed>
-          <Text>
-            Orientační odhad, není závazný výpočet ČSSZ.
-          </Text>
-          <Text>{today}</Text>
-        </View>
+        <Footer label="Orientační odhad, není závazný výpočet ČSSZ." today={today} />
       </Page>
 
       {/* Page 2 — Investiční portfolio */}
@@ -536,11 +661,9 @@ export function ClientReport({
         </View>
 
         <Text style={styles.clientLine}>Krok 02 — Jak investovat</Text>
-        <Text style={styles.subline}>
-          Měsíční úložka {formatCZK(result.monthlyContribution)} rozdělená do 4
-          fondů. Vážený očekávaný výnos {formatPercent(portfolioMetrics.expectedReturn, 1)},
-          vážený TER {formatPercent(portfolioMetrics.weightedTER, 2)}.
-        </Text>
+
+        {/* Koláč složení podle tříd aktiv (bod 3) */}
+        <AssetClassPiePdf allocation={allocation} />
 
         {/* Stacked allocation bar */}
         <View style={styles.allocBar}>
@@ -646,8 +769,23 @@ export function ClientReport({
           })}
         </View>
 
+        <Footer label="Investiční portfolio — orientační doporučení." today={today} />
+      </Page>
+
+      {/* Page 3 — Náklady a parametry portfolia */}
+      <Page size="A4" style={styles.page}>
+        <View style={styles.header}>
+          <Text style={styles.brand}>Náklady a parametry</Text>
+          <Text style={styles.meta}>{today}</Text>
+        </View>
+
+        <Text style={styles.subline}>
+          Měsíční úložka {formatCZK(result.monthlyContribution)} rozdělená do{" "}
+          {FUND_ORDER.length} fondů.
+        </Text>
+
         {/* Summary metrics */}
-        <View style={styles.metricsRow}>
+        <View style={[styles.metricsRow, { marginTop: 0, borderTopWidth: 0, paddingTop: 0 }]}>
           <View style={styles.portfolioMetricCell}>
             <Text style={styles.inputLabel}>Vážený výnos</Text>
             <Text style={[styles.bigNumber, { fontSize: 18, marginBottom: 2 }]}>
@@ -697,13 +835,10 @@ export function ClientReport({
           Toto není investiční poradenství dle § 4 ZPKT.
         </Text>
 
-        <View style={styles.footer} fixed>
-          <Text>Investiční portfolio — orientační doporučení.</Text>
-          <Text>{today}</Text>
-        </View>
+        <Footer label="Náklady a parametry — orientační doporučení." today={today} />
       </Page>
 
-      {/* Page 3 — Slovník pojmů */}
+      {/* Page 4 — Slovník pojmů */}
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
           <Text style={styles.brand}>Slovník pojmů</Text>
@@ -731,10 +866,10 @@ export function ClientReport({
           ))}
         </View>
 
-        <View style={styles.footer} fixed>
-          <Text>Slovník pojmů — orientační vysvětlení, nikoli závazný výklad.</Text>
-          <Text>{today}</Text>
-        </View>
+        <Footer
+          label="Slovník pojmů — orientační vysvětlení, nikoli závazný výklad."
+          today={today}
+        />
       </Page>
     </Document>
   );
