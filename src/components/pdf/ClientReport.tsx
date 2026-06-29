@@ -343,25 +343,23 @@ const ASSET_COLORS_PDF: Record<AssetClass, string> = {
   ostatni: "#C9C2BB",
 };
 
-/** Logo GFS Group (orientační rekonstrukce značky — dva oranžové oblouky). */
+/**
+ * Značka GFS Group v patičce. Zatím čistý wordmark v brand barvě — přesný
+ * symbol (logo-mark.svg) se sem doplní, jakmile bude soubor k dispozici.
+ */
 function GfsLogo() {
   return (
-    <Svg width={14} height={14} viewBox="0 0 100 100">
-      <Path
-        d="M50 16 A34 34 0 1 1 20 68"
-        stroke="#EE4123"
-        strokeWidth={14}
-        strokeLinecap="round"
-        fill="none"
-      />
-      <Path
-        d="M50 84 A34 34 0 1 1 80 32"
-        stroke="#EE4123"
-        strokeWidth={14}
-        strokeLinecap="round"
-        fill="none"
-      />
-    </Svg>
+    <Text
+      style={{
+        fontFamily: DISPLAY_FONT,
+        fontWeight: 700,
+        fontSize: 10,
+        color: "#DB5126",
+        letterSpacing: 0.6,
+      }}
+    >
+      GFS
+    </Text>
   );
 }
 
