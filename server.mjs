@@ -262,6 +262,182 @@ function parseIvkLines(lines) {
   };
 }
 
+// — IDA parser (Informativní důchodová aplikace) ————————————————————
+//
+// Novější výstup z https://eportal.cssz.cz/web/portal/informativni-duchodova-aplikace
+// Obsahuje navíc přímý výpočet ČSSZ (odhad důchodu, OVZ, výměry, datum
+// důchodového věku, počet dětí). Formát řádků se liší od IOLDP:
+// data s mezerami („1. 1. 2003"), VZ s „Kč", vyloučené dny „-" nebo číslo
+// a sloupec Zhodnocení (✓ = započteno, ⦸ = nezapočteno).
+
+const IDA_DATE_RE = /(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{4})/g;
+
+function idaDateToIso(d, m, y) {
+  return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+}
+
+/** „19 roků a 37 dnů" → počet dnů (roky × 365 + dny, shodně s IOLDP patičkou). */
+function rokyADnyNaDny(text) {
+  // \S* místo \w*: JS \w nematchuje „ů" v „roků".
+  const m = /(\d+)\s*rok\S*\s*a\s*(\d+)\s*dn/i.exec(text);
+  if (!m) return null;
+  return Number(m[1]) * 365 + Number(m[2]);
+}
+
+/** Číslo „33 300 Kč" z řádku / textu. */
+function kcValue(text) {
+  const m = /([\d][\d\s]*)\s*Kč/.exec(text);
+  return m ? parseIntStripped(m[1]) : null;
+}
+
+function parseIdaLines(lines) {
+  // — Identifikace: řádek s RČ mezi jménem a datem narození —
+  let jmeno = "";
+  let rc = "";
+  let datumNarozeni = null;
+  for (const line of lines) {
+    const m = /^(.+?)\s+(\d{9,10})\s+(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{4})\s*$/.exec(
+      line.trim(),
+    );
+    if (m) {
+      jmeno = m[1].trim();
+      rc = m[2];
+      datumNarozeni = idaDateToIso(Number(m[3]), Number(m[4]), Number(m[5]));
+      break;
+    }
+  }
+
+  // — Počet vychovaných dětí: hodnota na samostatném řádku za „(výchovné):" —
+  let pocetDeti = null;
+  for (let i = 0; i < lines.length; i++) {
+    if (/výchovné/i.test(lines[i])) {
+      const inline = /výchovné\)?\s*:?\s*(\d{1,2})\s*$/.exec(lines[i]);
+      if (inline) {
+        pocetDeti = Number(inline[1]);
+        break;
+      }
+      const next = (lines[i + 1] ?? "").trim();
+      if (/^\d{1,2}$/.test(next)) {
+        pocetDeti = Number(next);
+        break;
+      }
+    }
+  }
+
+  // — Souhrnné hodnoty ČSSZ —
+  let odhadDuchodu = null;
+  let datumDuchodovehoVeku = null;
+  let celkemDnyPojisteni = null;
+  let nahradniDny = null;
+  for (const line of lines) {
+    if (odhadDuchodu == null && /Odhad(ovaná)?\s+výše?\s+.*důchodu/i.test(line)) {
+      odhadDuchodu = kcValue(line);
+    }
+    if (datumDuchodovehoVeku == null && /dosažení důchodového věku/i.test(line)) {
+      const m = /(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{4})/.exec(line);
+      if (m) datumDuchodovehoVeku = idaDateToIso(Number(m[1]), Number(m[2]), Number(m[3]));
+    }
+    if (celkemDnyPojisteni == null && /Celkový počet získaných/i.test(line)) {
+      celkemDnyPojisteni = rokyADnyNaDny(line);
+    }
+    if (nahradniDny == null && /z toho náhradní doba/i.test(line)) {
+      nahradniDny = rokyADnyNaDny(line);
+    }
+  }
+
+  // — Podrobnosti k výpočtu: hodnota v Kč na řádku pod popiskem —
+  const detailValue = (labelRe) => {
+    for (let i = 0; i < lines.length; i++) {
+      if (labelRe.test(lines[i])) {
+        const own = kcValue(lines[i]);
+        if (own != null) return own;
+        const next = kcValue(lines[i + 1] ?? "");
+        if (next != null) return next;
+      }
+    }
+    return null;
+  };
+  const ovz = detailValue(/^Osobní vyměřovací základ/i);
+  const vypoctovyZaklad = detailValue(/^Výpočtový základ/i);
+  const procentniVymera = detailValue(/^Procentní výměra/i);
+  const zakladniVymera = detailValue(/^Základní výměra/i);
+
+  // — Roční řádky z „Kompletního přehledu evidovaných dob pojištění" —
+  // Bereme jen zhodnocené řádky (✓); ⦸ ČSSZ do výpočtu nezapočítává
+  // (např. duplicitní „DPČ - vykázání příjmu" překrývající se se ✓ řádky).
+  const vzPerYear = {};
+  const excludedDaysPerYear = {};
+  let parsedRowsCount = 0;
+  let inKompletni = false;
+  for (const line of lines) {
+    if (/Kompletní přehled evidovaných dob/i.test(line)) {
+      inKompletni = true;
+      continue;
+    }
+    if (/Podrobnosti k výpočtu/i.test(line)) inKompletni = false;
+    if (!inKompletni) continue;
+    if (line.includes("⦸")) continue;
+
+    IDA_DATE_RE.lastIndex = 0;
+    const d1 = IDA_DATE_RE.exec(line);
+    const d2 = IDA_DATE_RE.exec(line);
+    if (!d1 || !d2) continue;
+    const yOd = Number(d1[3]);
+    const yDo = Number(d2[3]);
+    if (yOd !== yDo) continue;
+
+    let seg = line.slice(IDA_DATE_RE.lastIndex);
+    // Nejdřív ukroj počet dní (1–3 ciferné číslo hned za daty) — jinak by se
+    // u řádků bez inline druhu slil s VZ („29 920 Kč" = 29 dní + VZ 920).
+    const daysMatch = /\b(\d{1,3})\b/.exec(seg);
+    if (daysMatch) seg = seg.slice(daysMatch.index + daysMatch[0].length);
+    // VZ = číselné skupiny bezprostředně před „Kč".
+    const vzMatch = /([\d][\d\s]*)\s*Kč/.exec(seg);
+    const vz = vzMatch ? parseIntStripped(vzMatch[1]) : 0;
+    // Vyloučené dny = první číslo za „Kč" („-" znamená žádné).
+    let vyl = 0;
+    if (vzMatch) {
+      const after = seg.slice(vzMatch.index + vzMatch[0].length);
+      const vylMatch = /\b(\d{1,3})\b/.exec(after);
+      if (vylMatch) vyl = Number(vylMatch[1]);
+    }
+
+    vzPerYear[yOd] = (vzPerYear[yOd] ?? 0) + vz;
+    excludedDaysPerYear[yOd] = (excludedDaysPerYear[yOd] ?? 0) + vyl;
+    parsedRowsCount++;
+  }
+
+  const years = Object.keys(vzPerYear).map(Number).sort((a, b) => a - b);
+  const rows = years.map((rok) => {
+    const maxDny = rok % 4 === 0 && (rok % 100 !== 0 || rok % 400 === 0) ? 366 : 365;
+    return {
+      rok,
+      vz: vzPerYear[rok] ?? 0,
+      vylouceneDny: Math.min(excludedDaysPerYear[rok] ?? 0, maxDny),
+    };
+  });
+
+  return {
+    format: "ida",
+    jmeno,
+    rc,
+    datumNarozeni,
+    pocetDeti,
+    rows,
+    parsedRowsCount,
+    celkemDnyPojisteni,
+    nahradniDny: nahradniDny ?? 0,
+    ida: {
+      odhadDuchodu,
+      datumDuchodovehoVeku,
+      ovz,
+      vypoctovyZaklad,
+      procentniVymera,
+      zakladniVymera,
+    },
+  };
+}
+
 async function handleParseIvk(req, res) {
   if (req.method !== "POST") {
     res.statusCode = 405;
@@ -277,10 +453,12 @@ async function handleParseIvk(req, res) {
     }
     const t0 = Date.now();
     const lines = await extractLines(buffer);
-    const parsed = parseIvkLines(lines);
+    // Rozliš formát: IDA (Informativní důchodová aplikace) vs. klasické IOLDP.
+    const isIda = lines.some((l) => l.includes("Informativní důchodová aplikace"));
+    const parsed = isIda ? parseIdaLines(lines) : parseIvkLines(lines);
     const ms = Date.now() - t0;
     console.log(
-      `[ivk] parsed ${parsed.rows.length} let in ${ms} ms (${parsed.parsedRowsCount} rows from ${lines.length} lines)`,
+      `[ivk] ${isIda ? "IDA" : "IOLDP"}: parsed ${parsed.rows.length} let in ${ms} ms (${parsed.parsedRowsCount} rows from ${lines.length} lines)`,
     );
 
     res.statusCode = 200;

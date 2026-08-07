@@ -645,6 +645,22 @@ export function ClientReport({
                 note={`vyšší odvody zvednou důchod o ${formatCZK(insights.odvody.rozdil)} měsíčně. Minimální vyměřovací základ orientačně ${formatCZK(insights.odvody.minMesic)} / měs.`}
               />
             )}
+
+            {insights?.csszOdhad?.odhadDuchodu != null && (
+              <DetailRow
+                label="Oficiální odhad ČSSZ (Informativní důchodová aplikace)"
+                value={`${formatCZK(insights.csszOdhad.odhadDuchodu)} / měs`}
+                note={`Počítáno ČSSZ jen z dosud evidovaných dob, bez projekce budoucích příjmů${
+                  insights.csszOdhad.ovz != null
+                    ? `; OVZ ${formatCZK(insights.csszOdhad.ovz)}`
+                    : ""
+                }${
+                  insights.csszOdhad.datumDuchodovehoVeku
+                    ? `; důchodový věk ${new Date(insights.csszOdhad.datumDuchodovehoVeku).toLocaleDateString("cs-CZ")}`
+                    : ""
+                }.`}
+              />
+            )}
           </View>
         )}
 

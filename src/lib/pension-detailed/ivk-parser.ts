@@ -17,15 +17,35 @@ export interface IvkRow {
   vylouceneDny: number;
 }
 
+/** Přímý výpočet ČSSZ z PDF „Informativní důchodová aplikace" (IDA). */
+export interface IdaVypocet {
+  /** Odhad měsíčního starobního důchodu dle ČSSZ (nominál k datu výpočtu). */
+  odhadDuchodu: number | null;
+  /** ISO datum dosažení důchodového věku dle ČSSZ. */
+  datumDuchodovehoVeku: string | null;
+  ovz: number | null;
+  vypoctovyZaklad: number | null;
+  procentniVymera: number | null;
+  zakladniVymera: number | null;
+}
+
 export interface IvkParseResult {
+  /** "ida" = Informativní důchodová aplikace, jinak klasické IOLDP. */
+  format?: "ida";
   jmeno: string;
   rc: string;
+  /** ISO datum narození — IDA ho uvádí přímo (přesnější než odvození z RČ). */
+  datumNarozeni?: string | null;
+  /** Počet vychovaných dětí (výchovné) — jen IDA. */
+  pocetDeti?: number | null;
   rows: IvkRow[];
   parsedRowsCount: number;
   /** Souhrn evidovaných dnů z patičky ČSSZ (vč. náhradních dob), je-li v PDF. */
   celkemDnyPojisteni?: number | null;
   /** Součet dnů náhradních dob ("ND - …") — krátí se na 80 %. */
   nahradniDny?: number;
+  /** Přímý výpočet ČSSZ — jen IDA. */
+  ida?: IdaVypocet;
 }
 
 /**

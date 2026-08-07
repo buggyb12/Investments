@@ -17,6 +17,7 @@ import {
   type VstupRok,
 } from "../lib/pension-detailed";
 import { statutoryRetirementAge } from "../lib/retirementAge";
+import type { IdaVypocet } from "../lib/pension-detailed/ivk-parser";
 
 export type CalculationMode = "approximation" | "detailed";
 
@@ -46,6 +47,12 @@ export interface DetailedInputs {
   celkemDnyPojisteni?: number;
   /** Dny náhradních dob z IVK — do doby pojištění se krátí na 80 %. */
   nahradniDny?: number;
+  /**
+   * Přímý výpočet ČSSZ z PDF „Informativní důchodová aplikace" (IDA,
+   * eportal.cssz.cz). Autoritativní referenční hodnoty — zobrazují se vedle
+   * naší projekce.
+   */
+  idaVypocet?: IdaVypocet;
 }
 
 /** Odvozené orientační výstupy nad rámec hlavní gap analýzy. */
@@ -86,6 +93,8 @@ export interface PensionInsights {
     /** Minimální měsíční vyměřovací základ použitý ve scénáři. */
     minMesic: number;
   };
+  /** Přímý výpočet ČSSZ (IDA) — autoritativní reference k naší projekci. */
+  csszOdhad?: IdaVypocet;
 }
 
 export interface ClientInputs {
@@ -239,6 +248,11 @@ export function useClientInputs() {
       inputs.mode === "detailed" ? pocetDeti : 0,
     );
     insights = { zakonnyVek };
+
+    if (inputs.mode === "detailed" && inputs.detailed.idaVypocet?.odhadDuchodu) {
+      // Přímý výpočet ČSSZ z nahraného IDA PDF — autoritativní reference.
+      insights.csszOdhad = inputs.detailed.idaVypocet;
+    }
 
     if (inputs.mode === "detailed") {
       const filledYears = detailedYearsInsured(inputs.detailed.rocniData);

@@ -224,16 +224,26 @@ export function InputForm({
                   setDetailed({
                     celkemDnyPojisteni: result.celkemDnyPojisteni ?? undefined,
                     nahradniDny: result.nahradniDny ?? 0,
+                    // IDA PDF nese přímý výpočet ČSSZ + počet vychovaných dětí.
+                    idaVypocet: result.ida ?? undefined,
+                    ...(result.pocetDeti != null
+                      ? { pocetDeti: result.pocetDeti }
+                      : {}),
                   });
-                  // Auto-vyplnění klienta z RČ v IVK — jinak hrozí výpočet
+                  // Auto-vyplnění klienta — IDA uvádí datum narození přímo,
+                  // u IOLDP ho odvozujeme z RČ. Jinak hrozí výpočet
                   // s defaultním datem narození a špatným rokem odchodu.
                   const info = birthInfoFromRc(result.rc);
                   const patch: Partial<ClientInputs> = {};
                   if (result.jmeno && !inputs.clientName) {
                     patch.clientName = result.jmeno;
                   }
-                  if (info) {
+                  if (result.datumNarozeni) {
+                    patch.birthDate = result.datumNarozeni;
+                  } else if (info) {
                     patch.birthDate = info.birthDate;
+                  }
+                  if (info) {
                     patch.gender = info.gender;
                     patch.plannedRetirementAge = Math.round(
                       statutoryRetirementAge(info.birthYear, info.gender),

@@ -72,8 +72,18 @@ export function DetailedYearsTable({
       </header>
 
       <p className="text-sm text-ink/70 leading-relaxed">
-        Vyplň roční vyměřovací základy (VZ) za roky{" "}
-        <span className="num">1986+</span>. Najdeš je v dokumentu{" "}
+        Nejjednodušší cesta: na ePortálu ČSSZ otevři{" "}
+        <a
+          href="https://eportal.cssz.cz/web/portal/informativni-duchodova-aplikace#/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline decoration-dotted underline-offset-4 hover:text-ink"
+        >
+          „Informativní důchodovou aplikaci"
+        </a>
+        , stáhni PDF s výsledkem výpočtu a nahraj ho níže — načtou se roční
+        vyměřovací základy, doby pojištění i přímý odhad důchodu od ČSSZ.
+        Funguje i starší{" "}
         <a
           href="https://eportal.cssz.cz/web/portal/prehled-dob-duchodoveho-pojisteni"
           target="_blank"
@@ -81,8 +91,9 @@ export function DetailedYearsTable({
           className="underline decoration-dotted underline-offset-4 hover:text-ink"
         >
           „Přehled dob důchodového pojištění"
-        </a>{" "}
-        z eportál.cssz.cz nebo nahraj PDF níže.
+        </a>
+        . Případně vyplň roční VZ za roky <span className="num">1986+</span>{" "}
+        ručně.
       </p>
 
       {pdfDropZone && <div>{pdfDropZone}</div>}

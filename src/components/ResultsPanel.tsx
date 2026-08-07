@@ -143,6 +143,45 @@ export function ResultsPanel({
         </div>
       )}
 
+      {/* Přímý výpočet ČSSZ z nahraného IDA PDF */}
+      {insights?.csszOdhad?.odhadDuchodu != null && (
+        <aside className="flex gap-3 items-start text-sm border-l-4 border-secondary bg-secondary/5 px-4 py-3">
+          <Info size={16} className="text-secondary mt-0.5 shrink-0" />
+          <div className="text-xs leading-relaxed text-ink/80 space-y-1">
+            <p>
+              <strong>Oficiální odhad ČSSZ</strong> (z Informativní důchodové
+              aplikace):{" "}
+              <span className="num font-medium text-ink">
+                {formatCZK(insights.csszOdhad.odhadDuchodu)} / měs
+              </span>
+              {insights.csszOdhad.datumDuchodovehoVeku && (
+                <>
+                  {" "}
+                  · důchodový věk{" "}
+                  <span className="num">
+                    {new Date(
+                      insights.csszOdhad.datumDuchodovehoVeku,
+                    ).toLocaleDateString("cs-CZ")}
+                  </span>
+                </>
+              )}
+            </p>
+            <p className="text-muted">
+              Počítáno ČSSZ jen z dosud evidovaných dob — bez projekce
+              budoucích příjmů do odchodu. Naše „Realita" výše budoucí roky
+              domodelovává, proto se čísla liší.
+              {insights.csszOdhad.ovz != null && (
+                <>
+                  {" "}
+                  OVZ dle ČSSZ:{" "}
+                  <span className="num">{formatCZK(insights.csszOdhad.ovz)}</span>.
+                </>
+              )}
+            </p>
+          </div>
+        </aside>
+      )}
+
       {/* Warnings */}
       {(noWorkYears || tooLate) && (
         <div className="flex gap-3 items-start text-sm border border-accent/30 bg-accent/5 px-4 py-3">

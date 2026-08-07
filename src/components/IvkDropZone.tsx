@@ -9,7 +9,12 @@ interface IvkDropZoneProps {
 export function IvkDropZone({ onParsed }: IvkDropZoneProps) {
   const [state, setState] = useState<"idle" | "parsing" | "ok" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
-  const [meta, setMeta] = useState<{ jmeno?: string; rc?: string; rows?: number } | null>(null);
+  const [meta, setMeta] = useState<{
+    jmeno?: string;
+    rc?: string;
+    rows?: number;
+    idaOdhad?: number;
+  } | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const handleFile = useCallback(
@@ -36,6 +41,7 @@ export function IvkDropZone({ onParsed }: IvkDropZoneProps) {
           jmeno: result.jmeno,
           rc: result.rc,
           rows: result.rows.length,
+          idaOdhad: result.ida?.odhadDuchodu ?? undefined,
         });
         setState("ok");
       } catch (err) {
@@ -89,6 +95,14 @@ export function IvkDropZone({ onParsed }: IvkDropZoneProps) {
             <p className="text-xs text-muted mt-0.5">
               Naparsováno {meta.rows} let. Tabulka níže je předvyplněná, můžeš upravit.
             </p>
+            {meta.idaOdhad != null && (
+              <p className="text-xs text-secondary mt-0.5">
+                Načten i přímý odhad ČSSZ:{" "}
+                <span className="num font-medium">
+                  {meta.idaOdhad.toLocaleString("cs-CZ")} Kč / měs
+                </span>
+              </p>
+            )}
           </div>
           <button
             type="button"
@@ -114,10 +128,11 @@ export function IvkDropZone({ onParsed }: IvkDropZoneProps) {
             <p className="text-sm font-medium text-ink">
               {state === "parsing"
                 ? "Parsuju PDF…"
-                : "Přetáhni IVK PDF, nebo klikni"}
+                : "Přetáhni PDF z ePortálu ČSSZ, nebo klikni"}
             </p>
             <p className="text-xs text-muted mt-0.5">
-              Soubor „Přehled dob důchodového pojištění" z eportál.cssz.cz
+              „Informativní důchodová aplikace" (s výpočtem ČSSZ) nebo
+              „Přehled dob důchodového pojištění"
             </p>
           </div>
         </button>
