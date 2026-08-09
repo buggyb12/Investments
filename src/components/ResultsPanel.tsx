@@ -55,6 +55,8 @@ export function ResultsPanel({
       );
 
   const sp = result.statePension;
+  // Nahrané IDA PDF → hodnota „Realita" je přímý výpočet ČSSZ, ne naše modelace.
+  const csszAuthoritative = insights?.csszOdhad?.odhadDuchodu != null;
   const showsNominalDivergence =
     sp.rokPriznani > new Date().getFullYear() &&
     Math.abs(sp.monthlyNominal - sp.monthly) > 1;
@@ -149,7 +151,7 @@ export function ResultsPanel({
           <Info size={16} className="text-secondary mt-0.5 shrink-0" />
           <div className="text-xs leading-relaxed text-ink/80 space-y-1">
             <p>
-              <strong>Oficiální odhad ČSSZ</strong> (z Informativní důchodové
+              <strong>Oficiální výpočet ČSSZ</strong> (Informativní důchodová
               aplikace):{" "}
               <span className="num font-medium text-ink">
                 {formatCZK(insights.csszOdhad.odhadDuchodu)} / měs
@@ -167,9 +169,10 @@ export function ResultsPanel({
               )}
             </p>
             <p className="text-muted">
-              Počítáno ČSSZ jen z dosud evidovaných dob — bez projekce
-              budoucích příjmů do odchodu. Naše „Realita" výše budoucí roky
-              domodelovává, proto se čísla liší.
+              Tato částka je použita jako hlavní hodnota „Realita" a vstupuje
+              do výpočtu rozdílu i investičního plánu — bereme ji jako důchod
+              v době odchodu. Vlastní orientační modelace se nepoužívá; slouží
+              jen pro doplňkové scénáře (doplnění dob, odvody, invalidita).
               {insights.csszOdhad.ovz != null && (
                 <>
                   {" "}
@@ -197,7 +200,9 @@ export function ResultsPanel({
         </div>
       )}
 
-      {/* Today's-purchasing-power explainer banner */}
+      {/* Today's-purchasing-power explainer banner — jen pro naši modelaci;
+          při autoritativním výpočtu ČSSZ (IDA) se důchod nedeflátuje. */}
+      {!csszAuthoritative && (
       <aside className="flex gap-3 items-start text-sm border-l-4 border-accent bg-accent/5 px-4 py-3">
         <Info size={16} className="text-accent mt-0.5 shrink-0" />
         <div className="space-y-2 text-xs leading-relaxed text-ink/80">
@@ -216,6 +221,7 @@ export function ResultsPanel({
           </p>
         </div>
       </aside>
+      )}
 
       {/* Metric cards: Realita / Očekávání / Rozdíl / Řešení */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10">
@@ -226,7 +232,11 @@ export function ResultsPanel({
           value={formatCZK(result.statePension.monthly)}
           unit="/ měs"
           subValue={showsNominalDivergence ? undefined : realitaSubValue}
-          description="Orientační odhad státního starobního důchodu v dnešní kupní síle."
+          description={
+            csszAuthoritative
+              ? "Přímý výpočet ČSSZ (Informativní důchodová aplikace) — bereme jako důchod v době odchodu."
+              : "Orientační odhad státního starobního důchodu v dnešní kupní síle."
+          }
           footer={
             showsNominalDivergence ? (
               <div className="num text-[11px] border-t border-line/50 pt-2 space-y-1">
