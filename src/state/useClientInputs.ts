@@ -485,30 +485,11 @@ export function useClientInputs() {
         }
       }
 
-      // — Autoritativní přímý výpočet ČSSZ (IDA) —
-      // Je-li nahrané IDA PDF, jeho odhad NAHRAZUJE naši modelaci jako hlavní
-      // hodnota důchodu: bereme ho jako důchod v době odchodu. Naše výpočty
-      // výše zůstávají jen jako podklad doplňkových scénářů (doplnění dob,
-      // odvody, invalidita).
-      const ida = inputs.detailed.idaVypocet;
-      if (ida?.odhadDuchodu) {
-        const zakladni = ida.zakladniVymera ?? 0;
-        const procentni =
-          ida.procentniVymera ?? Math.max(0, ida.odhadDuchodu - zakladni);
-        const rokPriznani = ida.datumDuchodovehoVeku
-          ? Number(ida.datumDuchodovehoVeku.slice(0, 4))
-          : safeBirth.getFullYear() + zakonnyVek.roky;
-        statePensionOverride = {
-          monthly: ida.odhadDuchodu,
-          monthlyNominal: ida.odhadDuchodu,
-          basicComponent: zakladni,
-          basicComponentNominal: zakladni,
-          percentageComponent: procentni,
-          percentageComponentNominal: procentni,
-          reducedBase: ida.vypoctovyZaklad ?? 0,
-          rokPriznani,
-        };
-      }
+      // Přímý výpočet ČSSZ (IDA) zůstává referencí vedle naší projekce:
+      // ČSSZ počítá jen z dosud evidovaných dob (jako by klient už
+      // nepracoval), zatímco většina klientů pracovat bude — primární je
+      // proto naše dopočtená hodnota s projekcí příjmů do odchodu.
+      // Hodnota ČSSZ se zobrazuje přes insights.csszOdhad.
     }
 
     const result = computeScenario({

@@ -55,8 +55,6 @@ export function ResultsPanel({
       );
 
   const sp = result.statePension;
-  // Nahrané IDA PDF → hodnota „Realita" je přímý výpočet ČSSZ, ne naše modelace.
-  const csszAuthoritative = insights?.csszOdhad?.odhadDuchodu != null;
   const showsNominalDivergence =
     sp.rokPriznani > new Date().getFullYear() &&
     Math.abs(sp.monthlyNominal - sp.monthly) > 1;
@@ -145,44 +143,56 @@ export function ResultsPanel({
         </div>
       )}
 
-      {/* Přímý výpočet ČSSZ z nahraného IDA PDF */}
+      {/* Srovnání: naše projekce (klient pracuje dál) vs. výpočet ČSSZ (IDA) */}
       {insights?.csszOdhad?.odhadDuchodu != null && (
-        <aside className="flex gap-3 items-start text-sm border-l-4 border-secondary bg-secondary/5 px-4 py-3">
-          <Info size={16} className="text-secondary mt-0.5 shrink-0" />
-          <div className="text-xs leading-relaxed text-ink/80 space-y-1">
-            <p>
-              <strong>Oficiální výpočet ČSSZ</strong> (Informativní důchodová
-              aplikace):{" "}
-              <span className="num font-medium text-ink">
-                {formatCZK(insights.csszOdhad.odhadDuchodu)} / měs
-              </span>
-              {insights.csszOdhad.datumDuchodovehoVeku && (
-                <>
-                  {" "}
-                  · důchodový věk{" "}
-                  <span className="num">
-                    {new Date(
-                      insights.csszOdhad.datumDuchodovehoVeku,
-                    ).toLocaleDateString("cs-CZ")}
-                  </span>
-                </>
-              )}
-            </p>
-            <p className="text-muted">
-              Tato částka je použita jako hlavní hodnota „Realita" a vstupuje
-              do výpočtu rozdílu i investičního plánu — bereme ji jako důchod
-              v době odchodu. Vlastní orientační modelace se nepoužívá; slouží
-              jen pro doplňkové scénáře (doplnění dob, odvody, invalidita).
+        <section className="space-y-3">
+          <div className="grid grid-cols-2 gap-px bg-line border border-line text-center">
+            <div className="bg-paper px-3 py-4">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted mb-1">
+                Náš odhad — pracuje dál
+              </p>
+              <p className="display num text-xl text-ink">
+                {formatCZK(sp.monthly)}
+              </p>
+              <p className="text-[10px] text-muted mt-0.5">
+                s projekcí příjmů do odchodu · dnešní kupní síla
+              </p>
+            </div>
+            <div className="bg-paper px-3 py-4">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted mb-1">
+                Výpočet ČSSZ — bez další práce
+              </p>
+              <p className="display num text-xl text-ink">
+                {formatCZK(insights.csszOdhad.odhadDuchodu)}
+              </p>
+              <p className="text-[10px] text-muted mt-0.5">
+                jen dosud evidované doby
+                {insights.csszOdhad.datumDuchodovehoVeku &&
+                  ` · důchodový věk ${new Date(insights.csszOdhad.datumDuchodovehoVeku).toLocaleDateString("cs-CZ")}`}
+              </p>
+            </div>
+          </div>
+          <aside className="flex gap-3 items-start text-sm border-l-4 border-secondary bg-secondary/5 px-4 py-3">
+            <Info size={16} className="text-secondary mt-0.5 shrink-0" />
+            <p className="text-xs leading-relaxed text-ink/80">
+              <strong>Proč dvě čísla?</strong> Oficiální výpočet ČSSZ
+              (Informativní důchodová aplikace) počítá jen z{" "}
+              <strong>dosud evidovaných dob</strong> — jako by klient ode
+              dneška už nepracoval. Většina klientů ale pracovat bude, proto
+              jako hlavní hodnotu „Realita" bereme{" "}
+              <strong>naši dopočtenou projekci</strong> s příjmy do odchodu.
+              Číslo ČSSZ je přesný oficiální stav k dnešku
               {insights.csszOdhad.ovz != null && (
                 <>
                   {" "}
-                  OVZ dle ČSSZ:{" "}
-                  <span className="num">{formatCZK(insights.csszOdhad.ovz)}</span>.
+                  (OVZ{" "}
+                  <span className="num">{formatCZK(insights.csszOdhad.ovz)}</span>)
                 </>
               )}
+              .
             </p>
-          </div>
-        </aside>
+          </aside>
+        </section>
       )}
 
       {/* Warnings */}
@@ -200,9 +210,7 @@ export function ResultsPanel({
         </div>
       )}
 
-      {/* Today's-purchasing-power explainer banner — jen pro naši modelaci;
-          při autoritativním výpočtu ČSSZ (IDA) se důchod nedeflátuje. */}
-      {!csszAuthoritative && (
+      {/* Today's-purchasing-power explainer banner */}
       <aside className="flex gap-3 items-start text-sm border-l-4 border-accent bg-accent/5 px-4 py-3">
         <Info size={16} className="text-accent mt-0.5 shrink-0" />
         <div className="space-y-2 text-xs leading-relaxed text-ink/80">
@@ -221,7 +229,6 @@ export function ResultsPanel({
           </p>
         </div>
       </aside>
-      )}
 
       {/* Metric cards: Realita / Očekávání / Rozdíl / Řešení */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10">
@@ -233,8 +240,8 @@ export function ResultsPanel({
           unit="/ měs"
           subValue={showsNominalDivergence ? undefined : realitaSubValue}
           description={
-            csszAuthoritative
-              ? "Přímý výpočet ČSSZ (Informativní důchodová aplikace) — bereme jako důchod v době odchodu."
+            insights?.csszOdhad?.odhadDuchodu != null
+              ? "Odhad s projekcí příjmů do odchodu (klient pracuje dál), v dnešní kupní síle. Srovnání s výpočtem ČSSZ níže."
               : "Orientační odhad státního starobního důchodu v dnešní kupní síle."
           }
           footer={

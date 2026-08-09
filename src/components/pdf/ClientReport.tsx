@@ -483,8 +483,6 @@ export function ClientReport({
   const zakonnyVek = insights?.zakonnyVek;
   const sp = result.statePension;
   const nominalDiff = sp.monthlyNominal - sp.monthly;
-  // Nahrané IDA PDF → „Realita" je přímý výpočet ČSSZ, ne naše modelace.
-  const csszAuthoritative = insights?.csszOdhad?.odhadDuchodu != null;
 
   return (
     <Document
@@ -502,9 +500,8 @@ export function ClientReport({
           {inputs.clientName ? `Pro ${inputs.clientName}` : "Důchodová projekce"}
         </Text>
         <Text style={styles.subline}>
-          {csszAuthoritative
-            ? `Do důchodu zbývá ${formatYears(result.yearsToRetirement)} • důchod dle přímého výpočtu ČSSZ (Informativní důchodová aplikace)`
-            : `Do důchodu zbývá ${formatYears(result.yearsToRetirement)} • hodnoty v dnešní kupní síle (deflátováno inflací ${formatPercent(inputs.inflation, 1)} p.a.)`}
+          Do důchodu zbývá {formatYears(result.yearsToRetirement)} • hodnoty
+          v dnešní kupní síle (deflátováno inflací {formatPercent(inputs.inflation, 1)} p.a.)
         </Text>
 
         {/* Info o osobě — před výpočty */}
@@ -573,11 +570,7 @@ export function ClientReport({
                 ? `nominálně v r. ${result.statePension.rokPriznani}: ${formatCZK(result.statePension.monthlyNominal)}`
                 : undefined
             }
-            description={
-              csszAuthoritative
-                ? `Přímý výpočet ČSSZ (IDA) — bereme jako důchod v době odchodu. Základní výměra ${formatCZK(result.statePension.basicComponent)}, procentní výměra ${formatCZK(result.statePension.percentageComponent)}.`
-                : `V dnešní kupní síle. Základní výměra ${formatCZK(result.statePension.basicComponent)}, procentní výměra ${formatCZK(result.statePension.percentageComponent)}.`
-            }
+            description={`V dnešní kupní síle, s projekcí příjmů do odchodu. Základní výměra ${formatCZK(result.statePension.basicComponent)}, procentní výměra ${formatCZK(result.statePension.percentageComponent)}.`}
           />
           <MetricCell
             step="02"
@@ -655,11 +648,11 @@ export function ClientReport({
 
             {insights?.csszOdhad?.odhadDuchodu != null && (
               <DetailRow
-                label="Oficiální výpočet ČSSZ (Informativní důchodová aplikace)"
-                value={`${formatCZK(insights.csszOdhad.odhadDuchodu)} / měs`}
-                note={`Použito jako hlavní hodnota „Realita" — důchod v době odchodu${
+                label="Náš odhad (pracuje dál) vs. oficiální výpočet ČSSZ (bez další práce)"
+                value={`${formatCZK(sp.monthly)} vs. ${formatCZK(insights.csszOdhad.odhadDuchodu)}`}
+                note={`ČSSZ (Informativní důchodová aplikace) počítá jen z dosud evidovaných dob — jako by klient už nepracoval. Hlavní hodnota „Realita" je naše projekce s příjmy do odchodu${
                   insights.csszOdhad.ovz != null
-                    ? `; OVZ ${formatCZK(insights.csszOdhad.ovz)}`
+                    ? `; OVZ dle ČSSZ ${formatCZK(insights.csszOdhad.ovz)}`
                     : ""
                 }${
                   insights.csszOdhad.datumDuchodovehoVeku
@@ -671,14 +664,7 @@ export function ClientReport({
           </View>
         )}
 
-        <Footer
-          label={
-            csszAuthoritative
-              ? "Důchod dle informativního výpočtu ČSSZ (IDA); ostatní hodnoty orientační."
-              : "Orientační odhad, není závazný výpočet ČSSZ."
-          }
-          today={today}
-        />
+        <Footer label="Orientační odhad, není závazný výpočet ČSSZ." today={today} />
       </Page>
 
       {/* Page 2 — Investiční portfolio */}
