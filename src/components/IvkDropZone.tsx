@@ -131,8 +131,7 @@ export function IvkDropZone({ onParsed }: IvkDropZoneProps) {
                 : "Přetáhni PDF z ePortálu ČSSZ, nebo klikni"}
             </p>
             <p className="text-xs text-muted mt-0.5">
-              „Informativní důchodová aplikace" (s výpočtem ČSSZ) nebo
-              „Přehled dob důchodového pojištění"
+              PDF „Výsledek výpočtu" z Informativní důchodové aplikace
             </p>
           </div>
         </button>
